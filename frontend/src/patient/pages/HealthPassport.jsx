@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Shield, AlertTriangle, Heart, Pill, Phone, Share2, QrCode, Download } from 'lucide-react'
-import { getHealthPassport, generateQRToken, getSession } from '../patientApi'
+import { getHealthPassport, generateQRToken } from '../patientApi'
 import QRCodeCard from '../components/QRCodeCard'
 
 export default function HealthPassport() {

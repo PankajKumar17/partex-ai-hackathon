@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Plus, Users, Activity, AlertTriangle, BarChart3, X } from 'lucide-react'
+import { Search, Plus, Users, Activity, AlertTriangle, BarChart3, X, LogOut } from 'lucide-react'
 import axios from 'axios'
 import RiskBadge from '../components/RiskBadge'
+import { useAuth } from '../auth/AuthContext'
 
 const API = import.meta.env.VITE_API_URL || ''
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [patients, setPatients] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -73,6 +75,7 @@ export default function Dashboard() {
           <p className="text-slate-500 mt-1">AI-Powered Clinical Documentation</p>
         </div>
         <div className="flex items-center gap-3">
+          <span className="text-sm text-slate-500 hidden md:inline">Dr. {user?.name || 'Doctor'}</span>
           <button
             onClick={() => navigate('/analytics')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50/50 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors text-sm"
@@ -86,6 +89,13 @@ export default function Dashboard() {
           >
             <Plus className="w-4 h-4" />
             New Patient
+          </button>
+          <button
+            onClick={() => { logout(); navigate('/login', { replace: true }) }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50/50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors text-sm"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Activity, Pill, Calendar, AlertTriangle, ChevronRight, Heart, LogOut } from 'lucide-react'
-import { getOverview, getSession, clearSession } from '../patientApi'
+import { getOverview } from '../patientApi'
+import { useAuth } from '../../auth/AuthContext'
 
 export default function PatientHome() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const session = getSession()
 
   useEffect(() => {
     loadData()
@@ -25,8 +26,8 @@ export default function PatientHome() {
   }
 
   const handleLogout = () => {
-    clearSession()
-    navigate('/pd/login', { replace: true })
+    logout()
+    navigate('/login', { replace: true })
   }
 
   if (loading) {
@@ -67,10 +68,10 @@ export default function PatientHome() {
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
                 marginBottom: 4
               }}>
-                {patient.name || session?.name || 'Patient'}!
+                {patient.name || user?.name || 'Patient'}!
               </h1>
               <p style={{ fontSize: 13, opacity: 0.7 }}>
-                Patient ID: {patient.patient_id || session?.patient_code}
+                Patient ID: {patient.patient_id || user?.patient_code}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

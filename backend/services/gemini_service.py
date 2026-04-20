@@ -15,7 +15,7 @@ if GEMINI_API_KEY:
 
 def _get_model():
     """Get Gemini 1.5 Flash model instance."""
-    return genai.GenerativeModel("gemini-3-flash-preview")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
 def _clean_json_response(text: str) -> str:
