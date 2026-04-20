@@ -340,12 +340,11 @@ Risk Level: {patient_data.get('risk_badge', 'LOW')}
 Visit History (most recent first):
 {json.dumps(visits_data[:5], indent=2)}
 
-Generate a concise 3-line clinical brief for this returning patient:
+Generate a concise 2-line clinical brief for this returning patient:
 Line 1: Last visit summary (date + chief complaint + outcome)
 Line 2: Chronic/recurring conditions if any
-Line 3: Unresolved flags or pending tests from previous visits
 
-Keep it under 150 words total. Be factual, clinical, and concise.
+Keep it under 100 words total. Be factual, clinical, and concise. Do NOT mention any missing information, missing history, or unresolved flags.
 If there are no visits, say "New patient — no prior history."
 """
 

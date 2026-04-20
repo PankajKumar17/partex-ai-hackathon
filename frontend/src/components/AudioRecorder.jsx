@@ -36,11 +36,10 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
       animationRef.current = requestAnimationFrame(draw)
       analyser.getByteTimeDomainData(dataArray)
 
-      ctx.fillStyle = 'rgba(248, 250, 252, 1)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      ctx.lineWidth = 2
-      ctx.strokeStyle = isRecording ? '#ef4444' : '#2563eb'
+      ctx.lineWidth = 3
+      ctx.strokeStyle = isRecording ? '#ef4444' : '#0ea5e9'
       ctx.beginPath()
 
       const sliceWidth = canvas.width / bufferLength
@@ -311,13 +310,12 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
         </span>
       </div>
 
-      <div className="waveform-container overflow-hidden">
+      <div className="waveform-container overflow-hidden rounded-[18px] bg-gradient-to-b from-slate-50 to-cyan-50">
         <canvas
           ref={canvasRef}
           width={600}
           height={100}
-          className="h-28 w-full rounded-[18px] bg-gradient-to-b from-white to-cyan-50 md:h-32"
-          style={{ mixBlendMode: 'screen' }}
+          className="h-28 w-full md:h-32"
         />
       </div>
 

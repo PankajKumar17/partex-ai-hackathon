@@ -17,7 +17,7 @@ if GEMINI_API_KEY:
 
 def _get_model():
     """Get Gemini 1.5 Flash model instance."""
-    return genai.GenerativeModel("gemini-3.1-flash-lite-preview")
+    return genai.GenerativeModel("gemini-2.5-flash")
 
 
 def _clean_json_response(text: str) -> str:
@@ -450,11 +450,6 @@ def generate_patient_brief(patient_data: dict, visits_data: list) -> str:
             if abnormal:
                 flags_parts.append(f"Flagged Vitals ({', '.join(abnormal)})")
                 
-        # Missing info
-        missing_flags = last_visit.get("missing_flags", [])
-        if missing_flags:
-            flags_parts.append(f"Missing info: {', '.join(missing_flags)}")
-            
         # Follow up
         follow_up = last_visit.get("follow_up_date")
         if follow_up:

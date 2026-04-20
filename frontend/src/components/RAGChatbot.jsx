@@ -127,15 +127,15 @@ export default function RAGChatbot({ patientId }) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 shadow-[0_22px_40px_-22px_rgba(15,23,42,0.85)] transition-all duration-300 hover:scale-110 hover:bg-slate-800"
+        className="fixed bottom-6 right-6 z-50 flex h-13 w-13 items-center justify-center rounded-2xl bg-slate-950 shadow-[0_22px_40px_-22px_rgba(15,23,42,0.85)] transition-all duration-300 hover:scale-105 hover:bg-slate-800"
       >
-        <MessageCircle className="w-6 h-6 text-white" />
+        <MessageCircle className="w-5 h-5 text-white" />
       </button>
     )
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex h-[500px] w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white/95 shadow-[0_30px_70px_-32px_rgba(15,23,42,0.55)] backdrop-blur">
+    <div className="fixed bottom-6 right-6 z-50 flex h-[580px] w-[min(26rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_30px_70px_-32px_rgba(15,23,42,0.5)] backdrop-blur">
       <div className="border-b border-slate-200 bg-gradient-to-r from-slate-950 via-cyan-900 to-teal-700 p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
@@ -157,7 +157,7 @@ export default function RAGChatbot({ patientId }) {
               <button
                 key={idx}
                 onClick={() => sendQuestion(q)}
-                  className="w-full rounded-[18px] border border-cyan-200 bg-white px-3 py-3 text-left text-xs text-cyan-700 transition-colors hover:bg-cyan-50"
+                  className="w-full rounded-lg border border-cyan-200 bg-white px-3 py-2.5 text-left text-xs text-cyan-700 transition-colors hover:bg-cyan-50"
               >
                 {q}
               </button>
@@ -168,10 +168,10 @@ export default function RAGChatbot({ patientId }) {
 
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-3 text-xs ${
+          <div className={`max-w-[80%] rounded-xl p-3 text-xs ${
               msg.role === 'user'
-                ? 'rounded-br-none bg-slate-950 text-white'
-                : 'rounded-bl-none border border-slate-200 bg-white text-slate-700'
+                ? 'rounded-tr-sm bg-slate-950 text-white'
+                : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'
             }`}>
               <p className="whitespace-pre-wrap">{msg.content}</p>
             </div>
@@ -180,7 +180,7 @@ export default function RAGChatbot({ patientId }) {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-none border border-slate-200 bg-white p-3">
+            <div className="rounded-xl rounded-tl-sm border border-slate-200 bg-white p-3">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
             </div>
           </div>

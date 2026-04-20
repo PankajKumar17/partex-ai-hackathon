@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from services import sarvam_service, groq_service, audio_processor, risk_service
+from services import sarvam_service, llm_provider, audio_processor, risk_service
 from routers.patient_memory import get_patient_memory_by_uuid, accumulate_memory
 from db.supabase_client import get_supabase
 from models.schemas import AudioProcessResponse, ProcessTextRequest
@@ -57,7 +57,7 @@ async def process_audio(
         )
 
     # ── 4. Groq Call 1: Diarization + Extraction ───────────────
-    extraction = await groq_service.diarize_and_extract(
+    extraction = await llm_provider.diarize_and_extract(
         transcript=transcript,
         language=language_detected,
         patient_age=patient.get("age", 0),
@@ -89,7 +89,7 @@ async def process_audio(
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
 
     # ── 6. Groq Call 2: Clinical Analysis ──────────────────────
-    clinical = await groq_service.clinical_analysis(
+    clinical = await llm_provider.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
         patient_age=patient.get("age", 0),
@@ -146,12 +146,34 @@ async def process_audio(
     db.table("clinical_data").insert(clinical_record).execute()
 
     # ── 10. Save speaker segments ────────────────────────────────
+    lang_map = {
+        "en": "english", "eng": "english", "en-us": "english", "en-in": "english",
+        "hi": "hindi", "hin": "hindi", "hi-in": "hindi",
+        "bn": "bengali", "ben": "bengali", "bn-in": "bengali",
+        "ta": "tamil", "tam": "tamil", "ta-in": "tamil",
+        "te": "telugu", "tel": "telugu", "te-in": "telugu",
+        "kn": "kannada", "kan": "kannada", "kn-in": "kannada",
+        "ml": "malayalam", "mal": "malayalam", "ml-in": "malayalam",
+        "mr": "marathi", "mar": "marathi", "mr-in": "marathi",
+        "gu": "gujarati", "guj": "gujarati", "gu-in": "gujarati",
+        "pa": "punjabi", "pun": "punjabi", "pa-in": "punjabi"
+    }
+    allowed_langs = {
+        "hindi", "english", "bengali", "tamil", "telugu",
+        "kannada", "malayalam", "marathi", "gujarati", "punjabi"
+    }
+
     for seg in speaker_segments:
+        raw_lang = str(seg.get("language", language_detected)).lower().strip()
+        mapped_lang = lang_map.get(raw_lang, raw_lang)
+        if mapped_lang not in allowed_langs:
+            mapped_lang = "hindi"
+
         segment_record = {
             "visit_id": visit_id,
             "speaker": str(seg.get("speaker", "PATIENT")).upper(),
             "text": seg.get("text", ""),
-            "language": str(seg.get("language", "hindi")).lower(),
+            "language": mapped_lang,
             "start_time": seg.get("start_time", 0),
             "end_time": seg.get("end_time", 0),
         }
@@ -208,7 +230,7 @@ async def process_text(request: ProcessTextRequest):
     quality_score = request.audio_quality_score
 
     # Same pipeline as audio starting from step 4
-    extraction = await groq_service.diarize_and_extract(
+    extraction = await llm_provider.diarize_and_extract(
         transcript=transcript,
         language=language_detected,
         patient_age=patient.get("age", 0),
@@ -238,7 +260,7 @@ async def process_text(request: ProcessTextRequest):
     # Fetch patient memory
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
 
-    clinical = await groq_service.clinical_analysis(
+    clinical = await llm_provider.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
         patient_age=patient.get("age", 0),
@@ -290,12 +312,35 @@ async def process_text(request: ProcessTextRequest):
     }
     db.table("clinical_data").insert(clinical_record).execute()
 
+    lang_map = {
+        "en": "english", "eng": "english", "en-us": "english", "en-in": "english",
+        "hi": "hindi", "hin": "hindi", "hi-in": "hindi",
+        "bn": "bengali", "ben": "bengali", "bn-in": "bengali",
+        "ta": "tamil", "tam": "tamil", "ta-in": "tamil",
+        "te": "telugu", "tel": "telugu", "te-in": "telugu",
+        "kn": "kannada", "kan": "kannada", "kn-in": "kannada",
+        "ml": "malayalam", "mal": "malayalam", "ml-in": "malayalam",
+        "mr": "marathi", "mar": "marathi", "mr-in": "marathi",
+        "gu": "gujarati", "guj": "gujarati", "gu-in": "gujarati",
+        "pa": "punjabi", "pun": "punjabi", "pa-in": "punjabi"
+    }
+
+    allowed_langs = {
+        "hindi", "english", "bengali", "tamil", "telugu",
+        "kannada", "malayalam", "marathi", "gujarati", "punjabi"
+    }
+
     for seg in speaker_segments:
+        raw_lang = str(seg.get("language", language_detected)).lower().strip()
+        mapped_lang = lang_map.get(raw_lang, raw_lang)
+        if mapped_lang not in allowed_langs:
+            mapped_lang = "hindi"
+
         segment_record = {
             "visit_id": visit_id,
             "speaker": str(seg.get("speaker", "PATIENT")).upper(),
             "text": seg.get("text", ""),
-            "language": str(seg.get("language", "hindi")).lower(),
+            "language": mapped_lang,
             "start_time": seg.get("start_time", 0),
             "end_time": seg.get("end_time", 0),
         }

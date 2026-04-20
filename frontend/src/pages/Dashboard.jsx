@@ -64,7 +64,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen app-shell relative z-10 animate-in fade-in duration-500">
       {/* Header */}
       <header className="flex items-center justify-between mb-8">
         <div>

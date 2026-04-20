@@ -11,7 +11,7 @@ import SpeakerTimeline from '../components/SpeakerTimeline'
 import ClinicalCard from '../components/ClinicalCard'
 import DifferentialDiagnosis from '../components/DifferentialDiagnosis'
 import MedicationCard from '../components/MedicationCard'
-import MissingInfoAlert from '../components/MissingInfoAlert'
+
 import PrescriptionPreview from '../components/PrescriptionPreview'
 import RiskBadge from '../components/RiskBadge'
 import RAGChatbot from '../components/RAGChatbot'
@@ -136,7 +136,7 @@ export default function Consultation() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8 app-shell relative z-10">
       {/* Header */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -185,8 +185,8 @@ export default function Consultation() {
       </header>
 
       {/* Patient Brief */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
-        <h3 className="text-xs font-semibold text-slate-500 mb-2">PATIENT BRIEF</h3>
+      <div className="glass-card mb-6 p-5 sm:p-6 animate-rise">
+        <h3 className="section-kicker mb-3">PATIENT BRIEF</h3>
         {loadingBrief ? (
           <div className="skeleton h-12 w-full" />
         ) : (
@@ -203,8 +203,8 @@ export default function Consultation() {
           <AudioRecorder patientId={patientId} onResult={handleAudioResult} />
           
           {consultationData?.transcript && (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-              <h3 className="text-xs font-semibold text-slate-500 mb-2">RAW TRANSCRIPT (SARVAM ASR)</h3>
+            <div className="glass-card p-5 animate-rise" style={{ animationDelay: '0.1s' }}>
+              <h3 className="section-kicker mb-3">RAW TRANSCRIPT (SARVAM ASR)</h3>
               <p className="text-sm text-slate-700 leading-relaxed italic border-l-2 border-primary/30 pl-3">
                 "{consultationData.transcript}"
               </p>
@@ -214,8 +214,8 @@ export default function Consultation() {
           <LiveTranscript segments={consultationData?.speaker_segments || []} />
           
           {(consultationData?.language_heatmap || consultationData?.speaker_segments?.length > 0) && (
-            <details className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 group">
-              <summary className="text-sm font-semibold text-slate-700 cursor-pointer list-none flex justify-between items-center">
+            <details className="glass-card p-5 group animate-rise" style={{ animationDelay: '0.2s' }}>
+              <summary className="text-sm font-bold text-slate-800 cursor-pointer list-none flex justify-between items-center outline-none">
                 <span>Technical Diagnostics (Language & Timeline)</span>
                 <span className="transition-transform group-open:rotate-180 text-xs">▼</span>
               </summary>
@@ -234,33 +234,34 @@ export default function Consultation() {
         {/* Right Column: Clinical Intelligence */}
         <div className="lg:col-span-4 space-y-4">
           {!consultationData ? (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-              <p className="text-5xl mb-4">🩺</p>
-              <p className="text-slate-500">Record a consultation to see clinical analysis</p>
-              <p className="text-xs text-gray-600 mt-2">
-                Press the mic button and start speaking with your patient
+            <div className="glass-card p-10 text-center animate-rise">
+              <div className="w-20 h-20 mx-auto bg-cyan-50 rounded-full flex items-center justify-center mb-5 animate-float shadow-inner">
+                <span className="text-4xl text-cyan-500">🩺</span>
+              </div>
+              <p className="text-slate-600 font-medium">Record a consultation to see clinical analysis</p>
+              <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+                Press the mic button and start speaking with your patient. We'll handle the rest.
               </p>
             </div>
           ) : (
             <>
-              <MissingInfoAlert flags={consultationData.missing_info_flags} />
-              
-              <div className="bg-slate-100/80 p-1 rounded-xl flex gap-1 mb-2">
+
+              <div className="bg-slate-200/50 backdrop-blur-sm p-1.5 flex gap-1.5 mb-4 select-none animate-rise rounded-[18px]">
                 <button 
                   onClick={() => setActiveTab('overview')}
-                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'overview' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                  className={`flex-1 flex items-center justify-center whitespace-nowrap text-[11px] uppercase tracking-wider font-bold py-2.5 rounded-2xl transition-all duration-300 ${activeTab === 'overview' ? 'bg-white shadow-sm text-cyan-800' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                 >
                   Overview
                 </button>
                 <button 
                   onClick={() => setActiveTab('diagnosis')}
-                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'diagnosis' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                  className={`flex-1 flex items-center justify-center whitespace-nowrap text-[11px] uppercase tracking-wider font-bold py-2.5 rounded-2xl transition-all duration-300 ${activeTab === 'diagnosis' ? 'bg-white shadow-sm text-cyan-800' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                 >
                   Diagnosis
                 </button>
                 <button 
                   onClick={() => setActiveTab('prescription')}
-                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'prescription' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                  className={`flex-1 flex items-center justify-center whitespace-nowrap text-[11px] uppercase tracking-wider font-bold py-2.5 rounded-2xl transition-all duration-300 ${activeTab === 'prescription' ? 'bg-white shadow-sm text-cyan-800' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'}`}
                 >
                   Prescription
                 </button>

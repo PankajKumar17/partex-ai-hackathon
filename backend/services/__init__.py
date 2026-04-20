@@ -7,6 +7,8 @@ from . import risk_service
 
 __all__ = [
     "groq_service",
+    "gemini_service",
+    "llm_provider",
     "sarvam_service",
     "audio_processor",
     "prescription_service",
