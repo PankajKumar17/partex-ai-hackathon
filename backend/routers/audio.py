@@ -88,7 +88,18 @@ async def process_audio(
     # ── 5b. Fetch patient memory (allergies, chronic conditions) ─
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
 
-    # ── 6. Groq Call 2: Clinical Analysis ──────────────────────
+    # ── 5c. Merge any allergies mentioned in THIS transcript into memory ─
+    # This ensures "I am allergic to X" in the current visit blocks X immediately
+    transcript_allergies = extraction.get("extracted_allergies_from_transcript", [])
+    if transcript_allergies:
+        existing = patient_mem.get("allergies", [])
+        existing_names = {a.lower() if isinstance(a, str) else a.get("name", "").lower() for a in existing}
+        for allergy in transcript_allergies:
+            if allergy.lower() not in existing_names:
+                existing.append(allergy)
+        patient_mem["allergies"] = existing
+
+    # ── 6. LLM Call 2: Clinical Analysis ──────────────────────
     clinical = await llm_provider.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
@@ -259,6 +270,16 @@ async def process_text(request: ProcessTextRequest):
 
     # Fetch patient memory
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
+
+    # Merge any allergies mentioned in THIS transcript into memory before clinical call
+    transcript_allergies = extraction.get("extracted_allergies_from_transcript", [])
+    if transcript_allergies:
+        existing = patient_mem.get("allergies", [])
+        existing_names = {a.lower() if isinstance(a, str) else a.get("name", "").lower() for a in existing}
+        for allergy in transcript_allergies:
+            if allergy.lower() not in existing_names:
+                existing.append(allergy)
+        patient_mem["allergies"] = existing
 
     clinical = await llm_provider.clinical_analysis(
         symptoms=symptoms,

@@ -75,23 +75,17 @@ Identify and separate speech by role. Look for patterns:
 - Additional context, family history, clarifications on behalf of patient = ATTENDANT
 Return as speaker_segments array with speaker, text, language, start_time, end_time.
 
-Task 2 - Extract ONLY from PATIENT and ATTENDANT turns:
-symptoms: array of objects with fields: name, duration, severity (mild/moderate/severe), body_part, confidence (0.0 to 1.0), language_source
-vitals: object with fields: BP, temp, pulse, weight, SpO2, flagged (boolean - true if any vital is abnormal)
-chief_complaint: one line summary of the main complaint
+Task 2 - Extract ONLY from PATIENT and ATTENDANT turns (ALL values in English):
+symptoms: array of objects with: name (English), duration, severity (mild/moderate/severe), body_part (English), confidence (0.0-1.0)
+vitals: object with: BP, temp, pulse, weight, SpO2, flagged (true if any vital is abnormal)
+chief_complaint: one line summary in English
 
-Task 3 - Drug name correction:
-Common confusions in Indian accent ASR:
-- "Paracetamol" vs "Pantoprazole"
-- "Metformin" vs "Metoprolol"
-- "Cetrizine" vs "Cetirizine"
-- "Augmentin" vs "Azithromycin"
-- "Amoxicillin" vs "Amoxyclav"
-Fix any drug names that seem phonetically confused in the transcript.
+Task 3 - CRITICAL: Extract any allergies or intolerances mentioned by the patient:
+Listen carefully for phrases like "allergic to", "can't take", "reaction to", "suits nahi karta", "allergy hai".
+extracted_allergies_from_transcript: list of drug/substance names the patient is allergic to (in English)
 
 Task 4 - Language heatmap:
-For each speaker segment, tag language as hindi/marathi/english/mixed.
-Provide overall percentage breakdown.
+Percentage breakdown by language.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {{
@@ -99,12 +93,12 @@ Return ONLY valid JSON (no markdown, no code fences):
     {{"speaker": "DOCTOR|PATIENT|ATTENDANT", "text": "...", "language": "hindi|marathi|english|mixed", "start_time": 0.0, "end_time": 1.0}}
   ],
   "symptoms": [
-    {{"name": "...", "duration": "...", "severity": "mild|moderate|severe", "body_part": "...", "confidence": 0.85, "language_source": "hindi"}}
+    {{"name": "fever", "duration": "2 days", "severity": "mild", "body_part": "head", "confidence": 0.85}}
   ],
-  "vitals": {{"BP": "120/80", "temp": "98.6F", "pulse": "72", "weight": "", "SpO2": "", "flagged": false}},
+  "vitals": {{"BP": null, "temp": null, "pulse": null, "weight": null, "SpO2": null, "flagged": false}},
   "chief_complaint": "...",
-  "language_heatmap": {{"hindi": 45, "marathi": 30, "english": 25, "mixed": 0}},
-  "corrected_drug_names": [{{"original": "...", "corrected": "..."}}]
+  "language_heatmap": {{"hindi": 45, "english": 55}},
+  "extracted_allergies_from_transcript": ["Paracetamol", "Penicillin"]
 }}
 """
 
@@ -201,83 +195,61 @@ Family History: {json.dumps(family_history) if family_history else "None recorde
 """
 
     system_instruction = (
-        "You are a senior physician AI assistant trained on Indian clinical guidelines "
-        "(ICMR, API, IAP). Be conservative and always flag uncertainties. "
-        "Only flag drug interactions that are clinically significant "
-        "(contraindicated or major). Ignore minor interactions. "
-        "CRITICAL: Always check the patient's KNOWN ALLERGIES before recommending any medication. "
-        "If a medication or its drug class matches a known allergy, DO NOT recommend it and flag it as an allergy_warning. "
-        "You must return ONLY valid JSON with no markdown formatting."
+        "You are a senior physician AI assistant trained on Indian clinical guidelines (ICMR, API, IAP). "
+        "ABSOLUTE RULE #1: If a patient mentions being allergic to ANY substance (in any language), "
+        "you MUST NOT prescribe that substance or any drug from the same class. This is NON-NEGOTIABLE. "
+        "ABSOLUTE RULE #2: Cross-check EVERY recommended medication against ALL allergies listed below. "
+        "If there is ANY match, set allergy_warning and REMOVE the drug from medications list or replace it. "
+        "ABSOLUTE RULE #3: ALL output field values must be in English. "
+        "Return ONLY valid JSON with no markdown formatting."
     )
 
     prompt = f"""
-Patient symptoms: {json.dumps(symptoms)}
-Vitals: {json.dumps(vitals)}
-Current Season/Month: {current_month} (important for endemic/epidemic diseases in India)
-Patient age: {patient_age}
-Patient gender: {patient_gender}
-Past diagnoses from records: {json.dumps(past_dx)}
+Patient: {patient_age}y {patient_gender} | Month: {current_month}
+Past diagnoses: {json.dumps(past_dx[:3])}
 {memory_context}
+⚠️ ALLERGY ALERT: The following allergies have been confirmed for this patient.
+DO NOT prescribe any of these or related drug classes:
+{json.dumps(known_allergies) if known_allergies else 'None on record — but check transcript carefully'}
 
-Task 1 - Differential Diagnosis (top 3):
-For each provide: name, ICD10_code, probability (0-100%), reasoning (one line),
-red_flags (boolean), requires_test (list of recommended tests).
-Consider the patient's chronic conditions when forming differentials.
+Current consultation symptoms: {json.dumps(symptoms)}
+Vitals this visit: {json.dumps(vitals)}
 
-Task 2 - Medications:
-For each medication mentioned or recommended:
-generic_name, brand_names (popular Indian brands like Cipla, Sun Pharma, etc.),
-dose, frequency (OD/BD/TID/QID), duration,
-safe_for_age (boolean), max_daily_dose_exceeded (boolean),
-interaction_warning (string or null),
-allergy_warning (string or null — set if this drug is contraindicated due to known allergies)
-⚠️ CROSS-CHECK every medication against the patient's known allergies above.
-⚠️ Also check against the patient's current ongoing medications for interactions.
+Task 1 - Differential Diagnosis (top 3 in English):
+For each: name, ICD10, probability (0-100%), reasoning (English, one line), red_flags (boolean), requires_test (list).
+Consider chronic conditions and current vitals.
+
+Task 2 - Medications (ALL values in English):
+⛔ BEFORE listing any medication, check it against the ALLERGY ALERT above.
+⛔ If the drug name or its class appears in allergy list → DO NOT include it. Find an alternative.
+For each safe medication: generic_name, brand_names (popular Indian brands), dose, frequency (OD/BD/TID/QID),
+duration, safe_for_age, max_daily_dose_exceeded, interaction_warning, allergy_warning.
 
 Task 3 - Drug Interaction Check:
-Check ALL prescribed medications against each other AND against the patient's current ongoing medications.
-Only flag clinically significant interactions (contraindicated or major).
+Only flag clinically significant (contraindicated or major) interactions.
 
-Task 4 - Missing Info Detection:
-Check if these are captured in the symptoms/vitals/memory, flag ONLY if truly missing:
-- Allergy history (skip if allergies already in memory)
-- Current medications list (skip if already in memory)
-- Family history (skip if already in memory)
-- Pregnancy status (if female aged 15-45)
-- Vaccination history (if pediatric)
+Task 4 - Risk Stratification:
+HIGH: Critical vitals or serious diagnosis. MODERATE: Chronic conditions or borderline presentation. LOW: Stable.
 
-Task 5 - Risk Stratification:
-Based on age + diagnoses + vitals + chronic conditions → HIGH / MODERATE / LOW
-HIGH: Critical vitals, serious diagnoses, extremes of age with acute illness
-MODERATE: Chronic conditions, borderline vitals
-LOW: Stable presentation
+Task 5 - Memory Extraction (from this consultation ONLY):
+extracted_allergies: new allergy names mentioned this visit.
+extracted_chronic_conditions: new chronic conditions mentioned this visit.
 
-Task 6 - Follow-up:
-Suggest follow-up in days based on condition severity and prescription duration.
-
-Task 7 - Memory Extraction:
-From THIS consultation, extract any NEW information mentioned:
-- extracted_allergies: list of allergy names mentioned by the patient in this visit
-- extracted_chronic_conditions: list of chronic conditions (diabetes, hypertension, asthma, etc.) mentioned
-These will be saved to the patient's permanent medical record.
-
-Return ONLY valid JSON (no markdown, no code fences):
+Return ONLY valid JSON:
 {{
   "differential_diagnosis": [
-    {{"name": "...", "ICD10": "A01.0", "probability": 78, "reasoning": "...", "red_flags": false, "requires_test": ["CBC", "Widal"]}}
+    {{"name": "Viral Pharyngitis", "ICD10": "J02.9", "probability": 75, "reasoning": "...", "red_flags": false, "requires_test": []}}
   ],
   "medications": [
-    {{"generic_name": "Paracetamol", "brand_names": ["Crocin", "Dolo 650"], "dose": "500mg", "frequency": "TID", "duration": "5 days", "safe_for_age": true, "max_daily_dose_exceeded": false, "interaction_warning": null, "allergy_warning": null}}
+    {{"generic_name": "Ibuprofen", "brand_names": ["Brufen", "Combiflam"], "dose": "400mg", "frequency": "TID", "duration": "5 days", "safe_for_age": true, "max_daily_dose_exceeded": false, "interaction_warning": null, "allergy_warning": null}}
   ],
-  "drug_interactions": [
-    {{"drug1": "...", "drug2": "...", "severity": "major|contraindicated", "description": "..."}}
-  ],
-  "missing_info_flags": ["travel history missing"],
-  "dosage_warnings": ["..."],
-  "risk_level": "HIGH|MODERATE|LOW",
+  "drug_interactions": [],
+  "missing_info_flags": [],
+  "dosage_warnings": [],
+  "risk_level": "LOW",
   "follow_up_days": 7,
-  "extracted_allergies": ["Penicillin"],
-  "extracted_chronic_conditions": ["Type 2 Diabetes"]
+  "extracted_allergies": [],
+  "extracted_chronic_conditions": []
 }}
 """
 
