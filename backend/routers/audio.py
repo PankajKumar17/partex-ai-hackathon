@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
-from services import sarvam_service, gemini_service, audio_processor, risk_service
+from services import sarvam_service, groq_service, audio_processor, risk_service
 from routers.patient_memory import get_patient_memory_by_uuid, accumulate_memory
 from db.supabase_client import get_supabase
 from models.schemas import AudioProcessResponse, ProcessTextRequest
@@ -56,8 +56,8 @@ async def process_audio(
             detail="Transcription produced no usable text. Please try recording again with clearer audio."
         )
 
-    # ── 4. Gemini Call 1: Diarization + Extraction ───────────────
-    extraction = await gemini_service.diarize_and_extract(
+    # ── 4. Groq Call 1: Diarization + Extraction ───────────────
+    extraction = await groq_service.diarize_and_extract(
         transcript=transcript,
         language=language_detected,
         patient_age=patient.get("age", 0),
@@ -88,8 +88,8 @@ async def process_audio(
     # ── 5b. Fetch patient memory (allergies, chronic conditions) ─
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
 
-    # ── 6. Gemini Call 2: Clinical Analysis ──────────────────────
-    clinical = await gemini_service.clinical_analysis(
+    # ── 6. Groq Call 2: Clinical Analysis ──────────────────────
+    clinical = await groq_service.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
         patient_age=patient.get("age", 0),
@@ -208,7 +208,7 @@ async def process_text(request: ProcessTextRequest):
     quality_score = request.audio_quality_score
 
     # Same pipeline as audio starting from step 4
-    extraction = await gemini_service.diarize_and_extract(
+    extraction = await groq_service.diarize_and_extract(
         transcript=transcript,
         language=language_detected,
         patient_age=patient.get("age", 0),
@@ -238,7 +238,7 @@ async def process_text(request: ProcessTextRequest):
     # Fetch patient memory
     patient_mem = get_patient_memory_by_uuid(patient_uuid)
 
-    clinical = await gemini_service.clinical_analysis(
+    clinical = await groq_service.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
         patient_age=patient.get("age", 0),

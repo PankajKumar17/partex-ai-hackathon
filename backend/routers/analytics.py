@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter
 from db.supabase_client import get_supabase
-from services import gemini_service
+from services import groq_service
 
 router = APIRouter()
 
@@ -61,7 +61,7 @@ async def get_epidemic_alerts():
             symptom_data.append(entry)
 
     # Analyze patterns via code
-    alerts = gemini_service.detect_epidemic_patterns(symptom_data)
+    alerts = groq_service.detect_epidemic_patterns(symptom_data)
 
     return {
         "alerts": alerts,

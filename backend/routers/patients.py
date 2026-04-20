@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from db.supabase_client import get_supabase
 from models.schemas import PatientCreate, PatientResponse
-from services import gemini_service
+from services import groq_service
 
 router = APIRouter()
 
@@ -154,8 +154,8 @@ async def get_patient_brief(patient_id: str):
             visit_info["vitals"] = cd.get("vitals", {})
         enriched_visits.append(visit_info)
 
-    # Generate brief via code (not Gemini)
-    brief = gemini_service.generate_patient_brief(patient, enriched_visits)
+    # Generate brief via Groq
+    brief = await groq_service.generate_patient_brief(patient, enriched_visits)
 
     return {
         "patient_id": patient_id,
