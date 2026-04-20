@@ -9,3 +9,4 @@ reportlab
 pydantic>=2.11
 pydub
 bcrypt
+groq
