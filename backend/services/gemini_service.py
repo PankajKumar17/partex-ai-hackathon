@@ -363,40 +363,83 @@ Return ONLY valid JSON (no markdown, no code fences):
         }
 
 
-async def generate_patient_brief(patient_data: dict, visits_data: list) -> str:
-    """Generate a concise 3-line brief for a returning patient."""
-    if not GEMINI_API_KEY:
-        return "AI brief unavailable — API key not configured."
-
-    model = _get_model()
-
-    prompt = f"""
-Patient: {patient_data.get('name', 'Unknown')}, Age: {patient_data.get('age', 'N/A')}, Gender: {patient_data.get('gender', 'N/A')}
-Risk Level: {patient_data.get('risk_badge', 'LOW')}
-
-Visit History (most recent first):
-{json.dumps(visits_data[:5], indent=2)}
-
-Generate a concise 3-line clinical brief for this returning patient:
-Line 1: Last visit summary (date + chief complaint + outcome)
-Line 2: Chronic/recurring conditions if any
-Line 3: Unresolved flags or pending tests from previous visits
-
-Keep it under 150 words total. Be factual, clinical, and concise.
-If there are no visits, say "New patient — no prior history."
-"""
-
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=300,
-            ),
-        )
-        return response.text.strip()
-    except Exception as e:
-        return f"Brief generation failed: {str(e)}"
+def generate_patient_brief(patient_data: dict, visits_data: list) -> str:
+    """Generate a concise 3-line brief for a returning patient without using Gemini API."""
+    lines = []
+    
+    # Line 1: Last visit summary
+    if not visits_data:
+        lines.append("New patient — no prior visits recorded.")
+    else:
+        last_visit = visits_data[0]
+        date = last_visit.get("date", "Unknown date")[:10]
+        cc = last_visit.get("chief_complaint", "No chief complaint recorded")
+        
+        # Check if there are diagnoses
+        diagnoses = last_visit.get("diagnoses", [])
+        outcome = ""
+        if diagnoses:
+            top_dx = diagnoses[0].get("name", "") if isinstance(diagnoses[0], dict) else diagnoses[0]
+            if top_dx:
+                outcome = f" (Diagnosis: {top_dx})"
+                
+        lines.append(f"Last visit on {date}: {cc}{outcome}.")
+        
+    # Line 2: Chronic conditions / Memory
+    conditions = patient_data.get("chronic_conditions", [])
+    allergies = patient_data.get("allergies", [])
+    
+    memory_parts = []
+    if conditions:
+        if isinstance(conditions[0], dict):
+            cond_names = [c.get("name") for c in conditions if c.get("name")]
+            memory_parts.append(f"Conditions: {', '.join(cond_names)}")
+        else:
+            memory_parts.append(f"Conditions: {', '.join(conditions)}")
+    
+    if allergies:
+        if isinstance(allergies[0], dict):
+            al_names = [a.get("name") for a in allergies if a.get("name")]
+            memory_parts.append(f"Allergies: {', '.join(al_names)}")
+        else:
+            memory_parts.append(f"Allergies: {', '.join(allergies)}")
+            
+    if memory_parts:
+        lines.append(" | ".join(memory_parts) + ".")
+    else:
+        lines.append("No known chronic conditions or allergies.")
+        
+    # Line 3: Unresolved flags or vitals
+    flags_parts = []
+    if visits_data:
+        last_visit = visits_data[0]
+        
+        # Vitals
+        vitals = last_visit.get("vitals", {})
+        if vitals and vitals.get("flagged"):
+            abnormal = []
+            for k, v in vitals.items():
+                if k != "flagged" and v and str(v).lower() != "none":
+                    abnormal.append(f"{k}: {v}")
+            if abnormal:
+                flags_parts.append(f"Flagged Vitals ({', '.join(abnormal)})")
+                
+        # Missing info
+        missing_flags = last_visit.get("missing_flags", [])
+        if missing_flags:
+            flags_parts.append(f"Missing info: {', '.join(missing_flags)}")
+            
+        # Follow up
+        follow_up = last_visit.get("follow_up_date")
+        if follow_up:
+            flags_parts.append(f"Follow-up scheduled: {follow_up[:10]}")
+            
+    if flags_parts:
+        lines.append(" | ".join(flags_parts) + ".")
+    else:
+        lines.append("No unresolved flags or follow-ups pending.")
+        
+    return "\n".join(lines)
 
 
 async def rag_query(patient_history: list, question: str) -> dict:
@@ -447,51 +490,53 @@ Return JSON:
         }
 
 
-async def detect_epidemic_patterns(symptom_data: list) -> list:
-    """Analyze aggregated symptom data to detect epidemic patterns."""
-    if not GEMINI_API_KEY:
-        return []
-
-    model = _get_model()
-
-    prompt = f"""
-Aggregated anonymized symptom data from the last 7 days across all patients:
-{json.dumps(symptom_data, indent=2)}
-
-Current month: {datetime.now().strftime("%B %Y")}
-Region: India
-
-Analyze for:
-1. Unusual clustering of similar symptoms
-2. Seasonal epidemic indicators (dengue, malaria, chikungunya, typhoid, etc.)
-3. Any patterns suggesting outbreak
-
-Return JSON array of alerts:
-[
-  {{
-    "alert_type": "outbreak|cluster|seasonal",
-    "disease": "suspected disease name",
-    "confidence": 0.75,
-    "evidence": "brief description of pattern",
-    "affected_count": 15,
-    "recommendation": "what action to take"
-  }}
-]
-
-Return empty array [] if no concerning patterns found.
-"""
-
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=1000,
-            ),
-        )
-        result = _safe_parse_json(response.text)
-        if isinstance(result, list):
-            return result
-        return result.get("alerts", [])
-    except Exception:
-        return []
+def detect_epidemic_patterns(symptom_data: list) -> list:
+    """Analyze aggregated symptom data to detect epidemic patterns programmatically."""
+    from collections import Counter
+    
+    disease_counts = Counter()
+    symptom_counts = Counter()
+    
+    for entry in symptom_data:
+        # Tally diagnoses
+        for dx in entry.get("diagnoses", []):
+            name = dx.get("name", "") if isinstance(dx, dict) else dx
+            if name:
+                disease_counts[name.strip().lower()] += 1
+                
+        # Tally symptoms
+        for sym in entry.get("symptoms", []):
+            name = sym.get("name", "") if isinstance(sym, dict) else sym
+            if name:
+                symptom_counts[name.strip().lower()] += 1
+                
+    alerts = []
+    
+    # Threshold for epidemic alert (e.g., 3 occurrences in 7 days)
+    THRESHOLD = 3
+    
+    for disease, count in disease_counts.items():
+        if count >= THRESHOLD:
+            alerts.append({
+                "alert_type": "cluster",
+                "disease": disease.title(),
+                "confidence": 0.8,
+                "evidence": f"Detected {count} cases in the last 7 days.",
+                "affected_count": count,
+                "recommendation": "Monitor closely for potential outbreak."
+            })
+            
+    # If no specific disease crosses threshold, check isolated symptoms
+    if not alerts:
+        for sym, count in symptom_counts.items():
+            if count >= THRESHOLD + 2:  # Symptoms need higher threshold
+                alerts.append({
+                    "alert_type": "symptom_cluster",
+                    "disease": f"Unknown (Symptom: {sym.title()})",
+                    "confidence": 0.6,
+                    "evidence": f"Frequent reporting of {sym.title()} ({count} cases) in the last 7 days.",
+                    "affected_count": count,
+                    "recommendation": "Investigate underlying cause of symptom cluster."
+                })
+                
+    return alerts

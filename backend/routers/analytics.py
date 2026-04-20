@@ -60,8 +60,8 @@ async def get_epidemic_alerts():
             }
             symptom_data.append(entry)
 
-    # Analyze patterns via Gemini
-    alerts = await gemini_service.detect_epidemic_patterns(symptom_data)
+    # Analyze patterns via code
+    alerts = gemini_service.detect_epidemic_patterns(symptom_data)
 
     return {
         "alerts": alerts,

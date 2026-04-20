@@ -151,10 +151,11 @@ async def get_patient_brief(patient_id: str):
             visit_info["medications"] = cd.get("medications", [])
             visit_info["missing_flags"] = cd.get("missing_info_flags", [])
             visit_info["follow_up_date"] = cd.get("follow_up_date")
+            visit_info["vitals"] = cd.get("vitals", {})
         enriched_visits.append(visit_info)
 
-    # Generate brief via Gemini
-    brief = await gemini_service.generate_patient_brief(patient, enriched_visits)
+    # Generate brief via code (not Gemini)
+    brief = gemini_service.generate_patient_brief(patient, enriched_visits)
 
     return {
         "patient_id": patient_id,
