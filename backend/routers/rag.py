@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from db.supabase_client import get_supabase
 from services import gemini_service, sarvam_service
+from routers.patient_memory import get_patient_memory
 from models.schemas import RAGQuery, RAGResponse
 import json
 
@@ -64,8 +65,11 @@ async def rag_query(query: RAGQuery):
             source_visits=[],
         )
 
-    # Query Gemini with full patient context
-    result = await gemini_service.rag_query(patient_history, query.question)
+    # Fetch persistent patient memory for richer context
+    memory = get_patient_memory(query.patient_id)
+
+    # Query Gemini with full patient context + memory
+    result = await gemini_service.rag_query(patient_history, query.question, patient_memory=memory)
 
     return RAGResponse(
         answer=result.get("answer", "No answer generated."),

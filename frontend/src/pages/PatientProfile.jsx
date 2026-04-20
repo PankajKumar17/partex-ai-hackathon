@@ -117,6 +117,41 @@ export default function PatientProfile() {
             <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{brief}</p>
           </div>
         )}
+
+        {/* Patient Memory / persistent context */}
+        {(patient.allergies?.length > 0 || patient.chronic_conditions?.length > 0) && (
+          <div className="mt-4 pt-4 border-t border-slate-100 flex gap-6">
+            {patient.allergies?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span> ALLERGIES
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {patient.allergies.map((allergy, i) => (
+                    <span key={i} className="px-2 py-1 bg-red-50 text-red-700 rounded-md text-xs font-medium border border-red-100">
+                      {typeof allergy === 'string' ? allergy : allergy.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {patient.chronic_conditions?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> CHRONIC CONDITIONS
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {patient.chronic_conditions.map((cond, i) => (
+                    <span key={i} className="px-2 py-1 bg-amber-50 text-amber-700 rounded-md text-xs font-medium border border-amber-100">
+                      {typeof cond === 'string' ? cond : cond.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Timeline */}

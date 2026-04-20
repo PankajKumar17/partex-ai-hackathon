@@ -179,6 +179,7 @@ async def clinical_analysis(
     patient_age: int,
     patient_gender: str = "",
     past_diagnoses: list = None,
+    patient_memory: dict = None,
 ) -> dict:
     """
     GEMINI CALL 2: Clinical intelligence — diagnosis, medications, interactions.
@@ -190,6 +191,7 @@ async def clinical_analysis(
     - Missing info detection
     - Risk stratification
     - Follow-up recommendation
+    - Newly extracted allergies and chronic conditions for memory accumulation
     """
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY is not set")
@@ -197,12 +199,36 @@ async def clinical_analysis(
     model = _get_model()
     current_month = datetime.now().strftime("%B %Y")
     past_dx = past_diagnoses or []
+    memory = patient_memory or {}
+
+    # Build the patient memory context block
+    memory_context = ""
+    known_allergies = memory.get("allergies", [])
+    known_conditions = memory.get("chronic_conditions", [])
+    known_medications = memory.get("current_medications", [])
+    blood_type = memory.get("blood_type", "")
+    family_history = memory.get("family_history", [])
+    surgical_history = memory.get("surgical_history", [])
+
+    if any([known_allergies, known_conditions, known_medications, blood_type, family_history, surgical_history]):
+        memory_context = f"""
+═══ PATIENT MEDICAL MEMORY (from past records) ═══
+Known Allergies: {json.dumps(known_allergies) if known_allergies else "None recorded"}
+Chronic Conditions: {json.dumps(known_conditions) if known_conditions else "None recorded"}
+Current Ongoing Medications: {json.dumps(known_medications) if known_medications else "None recorded"}
+Blood Type: {blood_type or "Unknown"}
+Surgical History: {json.dumps(surgical_history) if surgical_history else "None recorded"}
+Family History: {json.dumps(family_history) if family_history else "None recorded"}
+═══════════════════════════════════════════════════
+"""
 
     system_instruction = (
         "You are a senior physician AI assistant trained on Indian clinical guidelines "
         "(ICMR, API, IAP). Be conservative and always flag uncertainties. "
         "Only flag drug interactions that are clinically significant "
         "(contraindicated or major). Ignore minor interactions. "
+        "CRITICAL: Always check the patient's KNOWN ALLERGIES before recommending any medication. "
+        "If a medication or its drug class matches a known allergy, DO NOT recommend it and flag it as an allergy_warning. "
         "You must return ONLY valid JSON with no markdown formatting."
     )
 
@@ -213,33 +239,37 @@ Current Season/Month: {current_month} (important for endemic/epidemic diseases i
 Patient age: {patient_age}
 Patient gender: {patient_gender}
 Past diagnoses from records: {json.dumps(past_dx)}
+{memory_context}
 
 Task 1 - Differential Diagnosis (top 3):
 For each provide: name, ICD10_code, probability (0-100%), reasoning (one line),
-red_flags (boolean), requires_test (list of recommended tests)
+red_flags (boolean), requires_test (list of recommended tests).
+Consider the patient's chronic conditions when forming differentials.
 
 Task 2 - Medications:
 For each medication mentioned or recommended:
 generic_name, brand_names (popular Indian brands like Cipla, Sun Pharma, etc.),
 dose, frequency (OD/BD/TID/QID), duration,
 safe_for_age (boolean), max_daily_dose_exceeded (boolean),
-interaction_warning (string or null)
+interaction_warning (string or null),
+allergy_warning (string or null — set if this drug is contraindicated due to known allergies)
+⚠️ CROSS-CHECK every medication against the patient's known allergies above.
+⚠️ Also check against the patient's current ongoing medications for interactions.
 
 Task 3 - Drug Interaction Check:
-Check ALL prescribed medications against each other.
+Check ALL prescribed medications against each other AND against the patient's current ongoing medications.
 Only flag clinically significant interactions (contraindicated or major).
 
 Task 4 - Missing Info Detection:
-Check if these are captured in the symptoms/vitals, flag if missing:
-- Allergy history
-- Current medications list
-- Travel history (especially for fever cases)
-- Family history (for chronic diseases)
+Check if these are captured in the symptoms/vitals/memory, flag ONLY if truly missing:
+- Allergy history (skip if allergies already in memory)
+- Current medications list (skip if already in memory)
+- Family history (skip if already in memory)
 - Pregnancy status (if female aged 15-45)
 - Vaccination history (if pediatric)
 
 Task 5 - Risk Stratification:
-Based on age + diagnoses + vitals → HIGH / MODERATE / LOW
+Based on age + diagnoses + vitals + chronic conditions → HIGH / MODERATE / LOW
 HIGH: Critical vitals, serious diagnoses, extremes of age with acute illness
 MODERATE: Chronic conditions, borderline vitals
 LOW: Stable presentation
@@ -247,21 +277,29 @@ LOW: Stable presentation
 Task 6 - Follow-up:
 Suggest follow-up in days based on condition severity and prescription duration.
 
+Task 7 - Memory Extraction:
+From THIS consultation, extract any NEW information mentioned:
+- extracted_allergies: list of allergy names mentioned by the patient in this visit
+- extracted_chronic_conditions: list of chronic conditions (diabetes, hypertension, asthma, etc.) mentioned
+These will be saved to the patient's permanent medical record.
+
 Return ONLY valid JSON (no markdown, no code fences):
 {{
   "differential_diagnosis": [
     {{"name": "...", "ICD10": "A01.0", "probability": 78, "reasoning": "...", "red_flags": false, "requires_test": ["CBC", "Widal"]}}
   ],
   "medications": [
-    {{"generic_name": "Paracetamol", "brand_names": ["Crocin", "Dolo 650"], "dose": "500mg", "frequency": "TID", "duration": "5 days", "safe_for_age": true, "max_daily_dose_exceeded": false, "interaction_warning": null}}
+    {{"generic_name": "Paracetamol", "brand_names": ["Crocin", "Dolo 650"], "dose": "500mg", "frequency": "TID", "duration": "5 days", "safe_for_age": true, "max_daily_dose_exceeded": false, "interaction_warning": null, "allergy_warning": null}}
   ],
   "drug_interactions": [
     {{"drug1": "...", "drug2": "...", "severity": "major|contraindicated", "description": "..."}}
   ],
-  "missing_info_flags": ["allergy history not captured", "travel history missing"],
+  "missing_info_flags": ["travel history missing"],
   "dosage_warnings": ["..."],
   "risk_level": "HIGH|MODERATE|LOW",
-  "follow_up_days": 7
+  "follow_up_days": 7,
+  "extracted_allergies": ["Penicillin"],
+  "extracted_chronic_conditions": ["Type 2 Diabetes"]
 }}
 """
 

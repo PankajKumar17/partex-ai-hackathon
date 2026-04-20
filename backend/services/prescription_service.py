@@ -46,27 +46,29 @@ def generate_prescription_pdf(
     styles.add(ParagraphStyle(
         name='HospitalName',
         parent=styles['Title'],
-        fontSize=18,
-        spaceAfter=2,
-        textColor=colors.HexColor('#1a365d'),
+        fontSize=20,
+        spaceAfter=4,
+        textColor=colors.HexColor('#0f172a'),
         alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     ))
     styles.add(ParagraphStyle(
         name='HospitalAddress',
         parent=styles['Normal'],
         fontSize=9,
-        textColor=colors.HexColor('#4a5568'),
+        textColor=colors.HexColor('#64748b'),
         alignment=TA_CENTER,
         spaceAfter=4,
     ))
     styles.add(ParagraphStyle(
         name='SectionHeader',
         parent=styles['Heading2'],
-        fontSize=12,
-        textColor=colors.HexColor('#2d3748'),
-        spaceBefore=10,
-        spaceAfter=6,
+        fontSize=13,
+        textColor=colors.HexColor('#1e293b'),
+        spaceBefore=14,
+        spaceAfter=8,
         borderWidth=0,
+        fontName='Helvetica-Bold'
     ))
     styles.add(ParagraphStyle(
         name='PatientInfo',
@@ -143,8 +145,10 @@ def generate_prescription_pdf(
     patient_table = Table(patient_table_data, colWidths=[270, 270])
     patient_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
     ]))
     story.append(patient_table)
     story.append(Spacer(1, 6))
@@ -198,14 +202,14 @@ def generate_prescription_pdf(
 
         med_table = Table(med_rows, colWidths=[25, 200, 70, 70, 80])
         med_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#edf2f7')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#2d3748')),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f1f5f9')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1e293b')),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e0')),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
         story.append(med_table)

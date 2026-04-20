@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Monitor, Flag, FileText, Loader2 } from 'lucide-react'
 import axios from 'axios'
+import ReactMarkdown from 'react-markdown'
 
 import AudioRecorder from '../components/AudioRecorder'
 import LiveTranscript from '../components/LiveTranscript'
@@ -27,6 +28,7 @@ export default function Consultation() {
   const [consultationData, setConsultationData] = useState(null)
   const [dualScreen, setDualScreen] = useState(false)
   const [patientWindow, setPatientWindow] = useState(null)
+  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     fetchPatient()
@@ -188,7 +190,9 @@ export default function Consultation() {
         {loadingBrief ? (
           <div className="skeleton h-12 w-full" />
         ) : (
-          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{brief}</p>
+          <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line [&>p]:mb-1 last:[&>p]:mb-0">
+            <ReactMarkdown>{brief}</ReactMarkdown>
+          </div>
         )}
       </div>
 
@@ -240,23 +244,59 @@ export default function Consultation() {
           ) : (
             <>
               <MissingInfoAlert flags={consultationData.missing_info_flags} />
-              <ClinicalCard
-                symptoms={consultationData.symptoms}
-                vitals={consultationData.vitals}
-              />
-              <DifferentialDiagnosis
-                diagnoses={consultationData.differential_diagnosis}
-              />
-              <MedicationCard
-                medications={consultationData.medications}
-                drugInteractions={consultationData.drug_interactions}
-                dosageWarnings={consultationData.dosage_warnings}
-              />
-              <PrescriptionPreview
-                visitId={consultationData.visit_id}
-                medications={consultationData.medications}
-                drugInteractions={consultationData.drug_interactions}
-              />
+              
+              <div className="bg-slate-100/80 p-1 rounded-xl flex gap-1 mb-2">
+                <button 
+                  onClick={() => setActiveTab('overview')}
+                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'overview' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                >
+                  Overview
+                </button>
+                <button 
+                  onClick={() => setActiveTab('diagnosis')}
+                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'diagnosis' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                >
+                  Diagnosis
+                </button>
+                <button 
+                  onClick={() => setActiveTab('prescription')}
+                  className={`flex-1 justify-center flex text-xs font-semibold py-2 rounded-lg transition-all duration-200 ${activeTab === 'prescription' ? 'bg-white shadow-sm text-slate-900 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                >
+                  Prescription
+                </button>
+              </div>
+
+              {activeTab === 'overview' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <ClinicalCard
+                    symptoms={consultationData.symptoms}
+                    vitals={consultationData.vitals}
+                  />
+                </div>
+              )}
+              
+              {activeTab === 'diagnosis' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <DifferentialDiagnosis
+                    diagnoses={consultationData.differential_diagnosis}
+                  />
+                </div>
+              )}
+              
+              {activeTab === 'prescription' && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
+                  <MedicationCard
+                    medications={consultationData.medications}
+                    drugInteractions={consultationData.drug_interactions}
+                    dosageWarnings={consultationData.dosage_warnings}
+                  />
+                  <PrescriptionPreview
+                    visitId={consultationData.visit_id}
+                    medications={consultationData.medications}
+                    drugInteractions={consultationData.drug_interactions}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>

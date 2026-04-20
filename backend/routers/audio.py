@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from services import sarvam_service, gemini_service, audio_processor, risk_service
+from routers.patient_memory import get_patient_memory_by_uuid, accumulate_memory
 from db.supabase_client import get_supabase
 from models.schemas import AudioProcessResponse, ProcessTextRequest
 
@@ -84,6 +85,9 @@ async def process_audio(
             for entry in cd.data:
                 past_diagnoses.extend(entry.get("differential_diagnosis") or entry.get("diagnosis") or [])
 
+    # ── 5b. Fetch patient memory (allergies, chronic conditions) ─
+    patient_mem = get_patient_memory_by_uuid(patient_uuid)
+
     # ── 6. Gemini Call 2: Clinical Analysis ──────────────────────
     clinical = await gemini_service.clinical_analysis(
         symptoms=symptoms,
@@ -91,6 +95,7 @@ async def process_audio(
         patient_age=patient.get("age", 0),
         patient_gender=patient.get("gender", ""),
         past_diagnoses=past_diagnoses[:5],
+        patient_memory=patient_mem,
     )
 
     differential_diagnosis = clinical.get("differential_diagnosis", [])
@@ -154,6 +159,15 @@ async def process_audio(
 
     # ── 11. Update patient risk badge ────────────────────────────
     db.table("patients").update({"risk_badge": final_risk}).eq("id", patient_uuid).execute()
+
+    # ── 12. Auto-accumulate memory (allergies, chronic conditions) ─
+    try:
+        new_allergies = clinical.get("extracted_allergies", [])
+        new_conditions = clinical.get("extracted_chronic_conditions", [])
+        new_meds = [{"generic_name": m.get("generic_name", ""), "dose": m.get("dose", ""), "frequency": m.get("frequency", "")} for m in medications if m.get("generic_name")]
+        accumulate_memory(patient_uuid, new_allergies=new_allergies, new_conditions=new_conditions, new_medications=new_meds)
+    except Exception as e:
+        print(f"[MEMORY] Accumulation failed (non-fatal): {e}")
 
     # ── 12. Return full response ─────────────────────────────────
     return AudioProcessResponse(
@@ -221,12 +235,16 @@ async def process_text(request: ProcessTextRequest):
             for entry in cd.data:
                 past_diagnoses.extend(entry.get("differential_diagnosis") or entry.get("diagnosis") or [])
 
+    # Fetch patient memory
+    patient_mem = get_patient_memory_by_uuid(patient_uuid)
+
     clinical = await gemini_service.clinical_analysis(
         symptoms=symptoms,
         vitals=vitals,
         patient_age=patient.get("age", 0),
         patient_gender=patient.get("gender", ""),
         past_diagnoses=past_diagnoses[:5],
+        patient_memory=patient_mem,
     )
 
     differential_diagnosis = clinical.get("differential_diagnosis", [])
@@ -284,6 +302,15 @@ async def process_text(request: ProcessTextRequest):
         db.table("speaker_segments").insert(segment_record).execute()
 
     db.table("patients").update({"risk_badge": final_risk}).eq("id", patient_uuid).execute()
+
+    # Auto-accumulate memory
+    try:
+        new_allergies = clinical.get("extracted_allergies", [])
+        new_conditions = clinical.get("extracted_chronic_conditions", [])
+        new_meds = [{"generic_name": m.get("generic_name", ""), "dose": m.get("dose", ""), "frequency": m.get("frequency", "")} for m in medications if m.get("generic_name")]
+        accumulate_memory(patient_uuid, new_allergies=new_allergies, new_conditions=new_conditions, new_medications=new_meds)
+    except Exception as e:
+        print(f"[MEMORY] Accumulation failed (non-fatal): {e}")
 
     return AudioProcessResponse(
         visit_id=visit_id,

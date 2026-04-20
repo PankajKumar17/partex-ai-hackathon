@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import audio, patients, visits, rag, prescription, analytics, patient_portal
+from routers import audio, patients, visits, rag, prescription, analytics, patient_memory, patient_portal, auth
 
 app = FastAPI(
     title="Voice-Driven Clinic API",
@@ -24,12 +24,14 @@ app.add_middleware(
 )
 
 # Register routers
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(audio.router, prefix="/api/audio", tags=["Audio"])
 app.include_router(patients.router, prefix="/api/patients", tags=["Patients"])
 app.include_router(visits.router, prefix="/api/visits", tags=["Visits"])
 app.include_router(rag.router, prefix="/api/rag", tags=["RAG"])
 app.include_router(prescription.router, prefix="/api/prescription", tags=["Prescription"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(patient_memory.router, prefix="/api/memory", tags=["Patient Memory"])
 app.include_router(patient_portal.router, prefix="/api/portal", tags=["Patient Portal"])
 
 
