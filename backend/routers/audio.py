@@ -149,9 +149,9 @@ async def process_audio(
     for seg in speaker_segments:
         segment_record = {
             "visit_id": visit_id,
-            "speaker": seg.get("speaker", "PATIENT"),
+            "speaker": str(seg.get("speaker", "PATIENT")).upper(),
             "text": seg.get("text", ""),
-            "language": seg.get("language", "hindi"),
+            "language": str(seg.get("language", "hindi")).lower(),
             "start_time": seg.get("start_time", 0),
             "end_time": seg.get("end_time", 0),
         }
@@ -293,9 +293,9 @@ async def process_text(request: ProcessTextRequest):
     for seg in speaker_segments:
         segment_record = {
             "visit_id": visit_id,
-            "speaker": seg.get("speaker", "PATIENT"),
+            "speaker": str(seg.get("speaker", "PATIENT")).upper(),
             "text": seg.get("text", ""),
-            "language": seg.get("language", "hindi"),
+            "language": str(seg.get("language", "hindi")).lower(),
             "start_time": seg.get("start_time", 0),
             "end_time": seg.get("end_time", 0),
         }

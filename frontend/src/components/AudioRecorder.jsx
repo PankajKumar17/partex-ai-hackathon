@@ -10,6 +10,7 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
   const [duration, setDuration] = useState(0)
   const [qualityScore, setQualityScore] = useState(null)
   const [noiseReduced, setNoiseReduced] = useState(false)
+  const [hasFailedUpload, setHasFailedUpload] = useState(false)
 
   const mediaRecorderRef = useRef(null)
   const timerRef = useRef(null)
@@ -59,6 +60,68 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
     draw()
   }, [isRecording])
 
+  // --- IndexedDB Local Backup Helpers ---
+  const initDB = () => {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("audioBackupDB", 1)
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result
+        if (!db.objectStoreNames.contains("chunks")) {
+          db.createObjectStore("chunks", { keyPath: "id", autoIncrement: true })
+        }
+      }
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  const saveChunkToIDB = async (blob) => {
+    try {
+      const db = await initDB()
+      const tx = db.transaction("chunks", "readwrite")
+      tx.objectStore("chunks").add({ blob, timestamp: Date.now(), patientId })
+    } catch (e) {
+      console.error("Local backup failed:", e)
+    }
+  }
+
+  const clearIDB = async () => {
+    try {
+      const db = await initDB()
+      const tx = db.transaction("chunks", "readwrite")
+      tx.objectStore("chunks").clear()
+    } catch (e) {
+      console.error("Local clear failed:", e)
+    }
+  }
+
+  const retryFailedUploads = async () => {
+    setHasFailedUpload(false)
+    setIsProcessing(true)
+    try {
+      const db = await initDB()
+      const tx = db.transaction("chunks", "readonly")
+      const store = tx.objectStore("chunks")
+      const request = store.getAll()
+      
+      request.onsuccess = async () => {
+        const chunks = request.result
+        if (!chunks || chunks.length === 0) return
+        
+        for (const record of chunks) {
+          // Process previously failed chunks
+          await processChunk(record.blob, false) 
+        }
+        await processFinalText()
+      }
+    } catch (e) {
+      console.error("Retry failed:", e)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+  // --------------------------------------
+
   const setupAndStartRecorder = () => {
     if (!streamRef.current) return
     const mediaRecorder = new MediaRecorder(streamRef.current, {
@@ -105,7 +168,10 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
       isStoppingRef.current = false
       setDuration(0)
       setQualityScore(null)
+      setHasFailedUpload(false)
       setIsRecording(true)
+
+      await clearIDB() // Clear old backups for new session
 
       setupAndStartRecorder()
 
@@ -143,8 +209,14 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
     }
   }
 
-  const processChunk = async (blob) => {
+  const processChunk = async (blob, saveLocal = true) => {
     setIsProcessing(true)
+    
+    // 1. Save to IndexedDB local backup before network request (if not retrying)
+    if (saveLocal) {
+      await saveChunkToIDB(blob)
+    }
+
     try {
       const formData = new FormData()
       formData.append('audio', blob, 'chunk.webm')
@@ -168,14 +240,11 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
         setIsProcessing(false) // just turning off spinner if user is still talking
       }
     } catch (err) {
-      console.error('Chunk processing failed:', err)
-      // Allow user to seamlessly continue recording even if a segment failed Sarvam
-      if (isStoppingRef.current) {
-        // even if last chunk failed, process the aggregated bits we DO have
-        await processFinalText()
-      } else {
-        setIsProcessing(false)
-      }
+      console.error('Chunk processing failed. Saved to local backup:', err)
+      setHasFailedUpload(true)
+      
+      // We do not immediately trigger processFinalText here to allow the doctor to retry uploading later
+      setIsProcessing(false)
     }
   }
 
@@ -198,10 +267,14 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
         timeout: 120000,
       })
 
+      // Clean local backup on full success
+      await clearIDB()
+      
       if (onResult) onResult(response.data)
     } catch (err) {
       console.error('Final text processing failed:', err)
-      const msg = err.response?.data?.detail || 'Failed to analyze text data. Please try again.'
+      setHasFailedUpload(true)
+      const msg = err.response?.data?.detail || 'Failed to analyze text data. Network dropped mid-consultation.'
       alert(msg)
     } finally {
       setIsProcessing(false)
@@ -283,14 +356,39 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
           </button>
         )}
 
-        <div>
-          <p className="font-mono text-3xl font-bold text-slate-950 md:text-4xl">
-            {formatTime(duration)}
-          </p>
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-3">
+            <p className="font-mono text-3xl font-bold text-slate-950 md:text-4xl">
+              {formatTime(duration)}
+            </p>
+            {isRecording && (
+              <span className="text-sm text-red-500 flex items-center gap-1 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                REC
+              </span>
+            )}
+          </div>
           <h4 className="mt-3 text-2xl font-semibold text-slate-950">
             {isRecording ? 'Tap to stop the capture' : 'Tap to begin the visit'}
           </h4>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+          
+          <div className="mt-2 flex gap-2">
+            {hasFailedUpload && !isRecording && (
+              <button 
+                onClick={retryFailedUploads}
+                className="text-xs text-white bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-md shadow-sm transition-colors whitespace-nowrap"
+              >
+                Retry Last Audio
+              </button>
+            )}
+            {noiseReduced && (
+              <span className="text-xs text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full border border-yellow-200">
+                Noise reduced
+              </span>
+            )}
+          </div>
+
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500 text-center">
             {isProcessing && isStoppingRef.current
               ? 'The transcript is now being converted into structured clinical output.'
               : 'Keep the phone or microphone near the conversation and speak normally.'}

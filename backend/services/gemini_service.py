@@ -1,9 +1,11 @@
 import os
 import json
 import re
+import traceback
 from datetime import datetime
 from dotenv import load_dotenv
 import google.generativeai as genai
+from typing import List, Dict, TypedDict
 
 load_dotenv()
 
@@ -15,7 +17,7 @@ if GEMINI_API_KEY:
 
 def _get_model():
     """Get Gemini 1.5 Flash model instance."""
-    return genai.GenerativeModel("gemini-2.5-flash")
+    return genai.GenerativeModel("gemini-3.1-flash-lite-preview")
 
 
 def _clean_json_response(text: str) -> str:
@@ -45,19 +47,58 @@ def _safe_parse_json(text: str) -> dict:
         return {"error": "Failed to parse Gemini response", "raw": text[:500]}
 
 
+class SpeakerSegment(TypedDict):
+    speaker: str
+    text: str
+    language: str
+    start_time: float
+    end_time: float
+
+class Symptom(TypedDict):
+    name: str
+    duration: str
+    severity: str
+    body_part: str
+    confidence: float
+    raw_text: str
+
+class SymptomTimelineEntry(TypedDict):
+    day: int
+    symptom: str
+    severity: str
+    added: bool
+    notes: str
+
+class Vitals(TypedDict):
+    BP: str
+    temp: str
+    pulse: str
+    weight: str
+    SpO2: str
+    flagged: bool
+
+class DrugCorrection(TypedDict):
+    original: str
+    corrected: str
+
+class ClinicalExtraction(TypedDict):
+    speaker_segments: List[SpeakerSegment]
+    symptoms: List[Symptom]
+    symptom_timeline: List[SymptomTimelineEntry]
+    vitals: Vitals
+    chief_complaint: str
+    language_heatmap: Dict[str, int]
+    corrected_drug_names: List[DrugCorrection]
+
+
 async def diarize_and_extract(
     transcript: str,
     language: str,
     patient_age: int = 0,
 ) -> dict:
     """
-    GEMINI CALL 1: Speaker diarization + clinical extraction.
-    
-    Takes raw transcript and returns:
-    - speaker_segments with role labels
-    - extracted symptoms, vitals, chief complaint
-    - drug name corrections
-    - language heatmap
+    GEMINI CALL 1: Speaker diarization + clinical extraction + temporal extraction.
+    Strict JSON schema enforced via Pydantic.
     """
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY is not set")
@@ -67,7 +108,10 @@ async def diarize_and_extract(
     system_instruction = (
         "You are a medical AI assistant designed for Indian hospitals. "
         "You analyze multilingual consultation transcripts carefully and accurately. "
-        "You must return ONLY valid JSON with no markdown formatting."
+        "You must output pure JSON data matching the requested schema strictly. "
+        "CRITICAL RULE ON UNCERTAINTY: Never invent symptoms. Never fill in gaps blindly. "
+        "Use null if a field is not explicitly mentioned. "
+        "If a symptom is mentioned vaguely, give it a lower 'confidence' score and include the 'raw_text'."
     )
 
     prompt = f"""
@@ -76,43 +120,19 @@ Detected Language: {language}
 Patient Age: {patient_age}
 
 Task 1 - Speaker Diarization:
-Identify and separate speech by role. Look for patterns:
-- Questions about symptoms, examination instructions, medical advice = DOCTOR
-- Describing pain, illness, symptoms, answering questions = PATIENT
-- Additional context, family history, clarifications on behalf of patient = ATTENDANT
-Return as speaker_segments array with speaker, text, language, start_time, end_time.
+Identify and separate speech by role (DOCTOR, PATIENT, ATTENDANT).
 
-Task 2 - Extract ONLY from PATIENT and ATTENDANT turns:
-symptoms: array of objects with fields: name, duration, severity (mild/moderate/severe), body_part, confidence (0.0 to 1.0), language_source
-vitals: object with fields: BP, temp, pulse, weight, SpO2, flagged (boolean - true if any vital is abnormal)
-chief_complaint: one line summary of the main complaint
+Task 2 - Extract Symptoms with Uncertainty Tokens:
+For symptoms, do NOT invent fields. If vague, set confidence < 0.6 and populate 'raw_text'.
 
-Task 3 - Drug name correction:
-Common confusions in Indian accent ASR:
-- "Paracetamol" vs "Pantoprazole"
-- "Metformin" vs "Metoprolol"
-- "Cetrizine" vs "Cetirizine"
-- "Augmentin" vs "Azithromycin"
-- "Amoxicillin" vs "Amoxyclav"
-Fix any drug names that seem phonetically confused in the transcript.
+Task 3 - Temporal Symptom Ordering:
+Extract the timeline of symptoms. Which day did which symptom appear? Did it worsen? Track this in the symptom_timeline object.
 
-Task 4 - Language heatmap:
-For each speaker segment, tag language as hindi/marathi/english/mixed.
-Provide overall percentage breakdown.
+Task 4 - Extraction (Vitals & Drugs):
+Extract vitals and perform drug name phonetical corrections for common Indian brands.
 
-Return ONLY valid JSON (no markdown, no code fences):
-{{
-  "speaker_segments": [
-    {{"speaker": "DOCTOR|PATIENT|ATTENDANT", "text": "...", "language": "hindi|marathi|english|mixed", "start_time": 0.0, "end_time": 1.0}}
-  ],
-  "symptoms": [
-    {{"name": "...", "duration": "...", "severity": "mild|moderate|severe", "body_part": "...", "confidence": 0.85, "language_source": "hindi"}}
-  ],
-  "vitals": {{"BP": "120/80", "temp": "98.6F", "pulse": "72", "weight": "", "SpO2": "", "flagged": false}},
-  "chief_complaint": "...",
-  "language_heatmap": {{"hindi": 45, "marathi": 30, "english": 25, "mixed": 0}},
-  "corrected_drug_names": [{{"original": "...", "corrected": "..."}}]
-}}
+Task 5 - Language Heatmap:
+Breakdown of langauge spoken across the consultation.
 """
 
     import asyncio
@@ -130,41 +150,47 @@ Return ONLY valid JSON (no markdown, no code fences):
                 [system_instruction, prompt],
                 generation_config=genai.types.GenerationConfig(
                     temperature=0.2,
-                    max_output_tokens=4096,
+                    response_mime_type="application/json",
+                    response_schema=ClinicalExtraction,
                 ),
             )
             print(f"[GEMINI API RESPONSE] Success (Attempt {attempt+1})")
-            print(f"Tokens Used: {response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 'Unknown'}")
-            print(f"Response Preview: {response.text[:150]}...")
-            print(f"{'='*50}\n")
             break
         except ResourceExhausted as e:
+            print(f"[GEMINI ERROR] ResourceExhausted: {e}")
             if attempt == max_retries - 1:
                 return {"chief_complaint": "Analysis failed: Gemini API Rate Limit Exceeded.", "error": str(e)}
             await asyncio.sleep(2 ** attempt)
         except Exception as e:
+            # We print the raw exception so you immediately know why it is failing natively
+            print(f"[GEMINI ERROR] Failed execution during {model.model_name}: {e}")
+            traceback.print_exc()
             return {"chief_complaint": f"Analysis failed: {str(e)}", "error": str(e)}
             
     if not response:
         return {"chief_complaint": "Analysis failed", "error": "No response"}
         
     try:
-        result = _safe_parse_json(response.text)
-
-        # Ensure required fields exist with defaults
+        # Since response_mime_type was 'application/json', we don't need _safe_parse_json, it's native JSON
+        result = json.loads(response.text)
+        
+        # Ensure all core fields structurally exist for downstream functions
         result.setdefault("speaker_segments", [])
         result.setdefault("symptoms", [])
+        result.setdefault("symptom_timeline", [])
         result.setdefault("vitals", {})
-        result.setdefault("chief_complaint", "")
+        result.setdefault("chief_complaint", "Processed Successfully")
         result.setdefault("language_heatmap", {})
         result.setdefault("corrected_drug_names", [])
 
         return result
 
     except Exception as e:
+        print(f"[GEMINI ERROR] JSON loads failed on payload: {response.text}")
         return {
             "speaker_segments": [],
             "symptoms": [],
+            "symptom_timeline": [],
             "vitals": {},
             "chief_complaint": f"JSON parsing error: {str(e)}",
             "language_heatmap": {},

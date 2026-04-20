@@ -47,6 +47,7 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
         "model": "saarika:v2.5",
         "language_code": "unknown",
         "with_timestamps": "true",
+        "prompt": "Metformin, Amlodipine, Pantoprazole, Azithromycin, Paracetamol, Cetirizine, HbA1c, creatinine, Dolo, Crocin, Augmentin, systolic, diastolic",
     }
     
     print(f"\n{'='*50}\n[SARVAM API REQUEST]")
