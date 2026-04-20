@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+supabase
+google-generativeai
+httpx
+python-multipart
+reportlab
+pydantic>=2.11
+pydub
