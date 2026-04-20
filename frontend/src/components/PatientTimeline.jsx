@@ -3,7 +3,7 @@ import RiskBadge from './RiskBadge'
 export default function PatientTimeline({ timeline = [] }) {
   if (timeline.length === 0) {
     return (
-      <div className="glass-card p-6 text-center">
+      <div className="rounded-[24px] bg-slate-50 p-6 text-center">
         <p className="text-slate-500">No visits recorded yet</p>
       </div>
     )
@@ -12,7 +12,7 @@ export default function PatientTimeline({ timeline = [] }) {
   return (
     <div className="relative">
       {/* Vertical line */}
-      <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary via-primary/50 to-transparent" />
+      <div className="absolute bottom-0 left-5 top-0 w-0.5 bg-gradient-to-b from-cyan-700 via-cyan-400/50 to-transparent" />
 
       <div className="space-y-6">
         {timeline.map((entry, idx) => {
@@ -27,15 +27,14 @@ export default function PatientTimeline({ timeline = [] }) {
 
           return (
             <div key={entry.visit_id || idx} className="relative pl-12">
-              {/* Node dot */}
-              <div className={`absolute left-3.5 top-5 w-3 h-3 rounded-full border-2 border-surface ${
-                riskLevel === 'HIGH' ? 'bg-red-500' :
+              <div className={`absolute left-3.5 top-5 h-3 w-3 rounded-full border-2 border-white ${
+                riskLevel === 'HIGH' ? 'bg-rose-500' :
                 riskLevel === 'MODERATE' ? 'bg-amber-500' :
-                'bg-green-500'
+                'bg-emerald-500'
               }`} />
 
-              <div className="glass-card p-4 hover:scale-[1.01] transition-transform">
-                <div className="flex items-center justify-between mb-2">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-4 transition-transform hover:scale-[1.01]">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-900">{date}</span>
                   <RiskBadge level={riskLevel} />
                 </div>
@@ -50,7 +49,7 @@ export default function PatientTimeline({ timeline = [] }) {
                     {cd.differential_diagnosis && cd.differential_diagnosis.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {cd.differential_diagnosis.slice(0, 2).map((dx, didx) => (
-                          <span key={didx} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary-light">
+                          <span key={didx} className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] text-cyan-700">
                             {dx.name} ({dx.probability}%)
                           </span>
                         ))}

@@ -46,14 +46,32 @@
   background: var(--pd-bg);
   padding-bottom: calc(var(--pd-nav-height) + 16px);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .pd-layout {
+    grid-template-columns: 300px 1fr;
+  }
 }
 
 .pd-header {
-  background: linear-gradient(135deg, var(--pd-gradient-start), var(--pd-gradient-end));
-  padding: 24px 20px 32px;
+  background: linear-gradient(135deg, var(--pd-gradient-start) 0%, var(--pd-gradient-end) 100%);
+  padding: 28px 20px 40px;
   color: white;
   position: relative;
   overflow: hidden;
+  margin-bottom: 20px;
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 10px 30px rgba(13, 148, 136, 0.15);
+}
+
+@media (max-width: 640px) {
+  .pd-header {
+    padding: 24px 16px 32px;
+    border-radius: 0 0 20px 20px;
+  }
 }
 
 .pd-header::before {
@@ -64,7 +82,8 @@
   width: 300px;
   height: 300px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
+  filter: blur(40px);
 }
 
 .pd-header::after {
@@ -75,7 +94,8 @@
   width: 250px;
   height: 250px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255,255,255,0.06);
+  filter: blur(30px);
 }
 
 .pd-header-content {
@@ -83,10 +103,22 @@
   z-index: 1;
 }
 
+.pd-main-content {
+  width: 100%;
+  overflow-y: auto;
+}
+
 .pd-page-content {
   padding: 20px;
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .pd-page-content {
+    padding: 12px;
+  }
 }
 
 /* ── Cards ──────────────────────────────────── */
@@ -94,15 +126,48 @@
   background: var(--pd-surface);
   border-radius: var(--pd-radius);
   border: 1px solid var(--pd-border);
-  box-shadow: var(--pd-card-shadow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
   padding: 20px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: pd-card-enter 0.4s ease-out both;
 }
 
+@media (max-width: 768px) {
+  .pd-card {
+    border-radius: 14px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pd-card {
+    border-radius: 12px;
+    padding: 14px;
+  }
+}
+
 .pd-card:hover {
-  box-shadow: var(--pd-card-shadow-hover);
-  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(13, 148, 136, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-3px);
+  border-color: var(--pd-primary-200);
+}
+
+.pd-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .pd-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pd-card-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pd-card-accent {
@@ -124,7 +189,7 @@
 @keyframes pd-card-enter {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -147,16 +212,29 @@
   left: 0;
   right: 0;
   height: var(--pd-nav-height);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid var(--pd-border-light);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 8px;
+  padding: 0 4px;
   z-index: 100;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.04);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 640px) {
+  .pd-bottom-nav {
+    height: 64px;
+    padding: 0 2px;
+  }
+}
+
+@media (min-width: 768px) {
+  .pd-bottom-nav {
+    display: none;
+  }
 }
 
 .pd-nav-item {
@@ -164,18 +242,26 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 8px 6px;
+  padding: 8px 10px;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--pd-text-muted);
   text-decoration: none;
-  min-width: 48px;
+  min-width: 54px;
   position: relative;
+  font-size: 10px;
+}
+
+@media (max-width: 640px) {
+  .pd-nav-item {
+    padding: 6px 8px;
+    min-width: 48px;
+    font-size: 9px;
+  }
 }
 
 .pd-nav-item span {
-  font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.02em;
 }

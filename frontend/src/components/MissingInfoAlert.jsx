@@ -19,36 +19,36 @@ export default function MissingInfoAlert({ flags = [], onDismiss }) {
   }
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+    <div className="glass-card border border-rose-200/80 bg-rose-50/85 p-4">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-red-600" />
-          <h3 className="text-red-600 font-semibold text-sm">
-            ⚠ Missing Critical Information
+          <AlertTriangle className="h-5 w-5 text-rose-600" />
+          <h3 className="text-sm font-semibold text-rose-700">
+            Missing critical information
           </h3>
         </div>
         <button
           onClick={handleDismissAll}
-          className="text-xs text-red-400 hover:text-red-600 transition-colors"
+          className="text-xs font-semibold text-rose-500 transition-colors hover:text-rose-700"
         >
           Dismiss all
         </button>
       </div>
       <div className="flex flex-wrap gap-2">
         {activeFlags.map((flag, idx) => {
-          const isWarning = flag.toLowerCase().includes('vital');
+          const isWarning = flag.toLowerCase().includes('vital')
           const chipClass = isWarning
-            ? "bg-yellow-100 text-yellow-800 border border-yellow-200 hover:bg-yellow-200"
-            : "bg-red-100 text-red-800 border border-red-200 hover:bg-red-200";
-            
+            ? 'bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200'
+            : 'bg-rose-100 text-rose-800 border border-rose-200 hover:bg-rose-200'
+
           return (
             <button
               key={idx}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer group transition-all ${chipClass}`}
+              className={`group inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${chipClass}`}
               onClick={() => handleDismiss(idx)}
             >
               {flag}
-              <X className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <X className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
             </button>
           )
         })}

@@ -224,62 +224,82 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
   }, [])
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900">Audio Recorder</h3>
+    <div className="glass-card space-y-6 p-5 md:p-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Audio Intake</p>
+          <h3 className="mt-2 text-2xl font-semibold text-slate-950">Consultation recording</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            Tap once to start, tap again to stop. The visit summary will be prepared automatically.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+          AI assisted
+        </span>
       </div>
 
-      <div className="waveform-container p-3">
+      <div className="waveform-container overflow-hidden">
         <canvas
           ref={canvasRef}
           width={600}
-          height={80}
-          className="w-full h-20 rounded-lg bg-slate-50 border border-slate-200"
+          height={100}
+          className="h-28 w-full rounded-[18px] bg-gradient-to-b from-white to-cyan-50 md:h-32"
+          style={{ mixBlendMode: 'screen' }}
         />
       </div>
 
-      <div className="flex items-center justify-center gap-6">
-        <span className="text-2xl font-mono text-slate-600 w-20 text-center">
-          {formatTime(duration)}
+      <div className="flex flex-col items-center gap-6 rounded-[24px] bg-slate-50 p-6 text-center sm:p-8">
+        <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+          isProcessing
+            ? 'bg-amber-100 text-amber-700'
+            : isRecording
+            ? 'bg-rose-100 text-rose-700'
+            : 'bg-emerald-100 text-emerald-700'
+        }`}>
+          {isProcessing && isStoppingRef.current ? 'Preparing summary' : isRecording ? 'Recording' : 'Ready'}
         </span>
 
         {isProcessing && isStoppingRef.current ? (
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-cyan-100 to-white shadow-[0_20px_45px_-24px_rgba(8,145,178,0.65)]">
+              <Loader2 className="h-11 w-11 animate-spin text-cyan-700" />
             </div>
-            <span className="text-sm text-slate-500">Analyzing...</span>
+            <span className="text-sm font-semibold text-cyan-700">Preparing clinical summary...</span>
           </div>
         ) : (
           <button
             onClick={isRecording ? stopRecording : startRecording}
-            className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+            className={`relative flex h-24 w-24 items-center justify-center rounded-full text-white shadow-[0_24px_40px_-24px_rgba(15,23,42,0.8)] transition-all duration-300 hover:scale-[1.03] md:h-28 md:w-28 ${
               isRecording
-                ? 'bg-red-500 hover:bg-red-600 pulse-record text-white'
-                : 'bg-blue-600 hover:bg-blue-700'
+                ? 'pulse-record bg-gradient-to-br from-rose-500 to-rose-700'
+                : 'bg-gradient-to-br from-cyan-600 to-teal-700'
             }`}
           >
             {isRecording ? (
-              <Square className="w-6 h-6 text-white" fill="white" />
+              <Square className="h-9 w-9 text-white" fill="white" />
             ) : (
-              <Mic className="w-7 h-7 text-white" />
+              <Mic className="h-9 w-9 text-white" />
             )}
           </button>
         )}
 
-        <div className="w-20 text-center">
-          {isRecording && (
-            <span className="text-sm text-red-500 flex items-center gap-1 font-semibold">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              REC
-            </span>
-          )}
-          {noiseReduced && (
-            <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full border border-yellow-200">
-              Noise reduced
-            </span>
-          )}
+        <div>
+          <p className="font-mono text-3xl font-bold text-slate-950 md:text-4xl">
+            {formatTime(duration)}
+          </p>
+          <h4 className="mt-3 text-2xl font-semibold text-slate-950">
+            {isRecording ? 'Tap to stop the capture' : 'Tap to begin the visit'}
+          </h4>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+            {isProcessing && isStoppingRef.current
+              ? 'The transcript is now being converted into structured clinical output.'
+              : 'Keep the phone or microphone near the conversation and speak normally.'}
+          </p>
         </div>
+
+        <p className="text-xs text-slate-500">
+          The system will create a transcript, extract findings, and prepare the visit summary automatically.
+        </p>
       </div>
     </div>
   )

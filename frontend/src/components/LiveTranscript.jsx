@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react'
 
 const speakerColors = {
-  DOCTOR: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', label: '👨‍⚕️ Doctor' },
-  PATIENT: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', label: '🤒 Patient' },
-  ATTENDANT: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', label: '👤 Attendant' },
+  DOCTOR: { bg: 'bg-cyan-50', border: 'border-cyan-200', text: 'text-cyan-700', label: 'Doctor' },
+  PATIENT: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', label: 'Patient' },
+  ATTENDANT: { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700', label: 'Attendant' },
 }
 
 const langBadges = {
   hindi: { label: 'HI', color: 'bg-orange-100 text-orange-700' },
-  marathi: { label: 'MR', color: 'bg-green-100 text-green-700' },
-  english: { label: 'EN', color: 'bg-blue-100 text-blue-700' },
-  mixed: { label: 'MIX', color: 'bg-purple-100 text-purple-700' },
+  marathi: { label: 'MR', color: 'bg-emerald-100 text-emerald-700' },
+  english: { label: 'EN', color: 'bg-cyan-100 text-cyan-700' },
+  mixed: { label: 'MIX', color: 'bg-slate-200 text-slate-700' },
 }
 
 export default function LiveTranscript({ segments = [], isLive = false }) {
@@ -24,15 +24,16 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
 
   if (segments.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">Live Transcript</h3>
-        <div className="text-center py-8 text-slate-500">
-          <p className="text-lg mb-1">🎙️</p>
+      <div className="glass-card p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Transcript</p>
+        <h3 className="mt-2 text-xl font-semibold text-slate-950">Speaker timeline</h3>
+        <div className="py-8 text-center text-slate-500">
+          <p className="mb-1 text-lg">🎙️</p>
           <p>Start recording to see transcript here</p>
           {isLive && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm text-green-400">Listening...</span>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm text-emerald-600">Listening...</span>
             </div>
           )}
         </div>
@@ -41,21 +42,26 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">Live Transcript</h3>
+    <div className="glass-card p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Transcript</p>
+          <h3 className="mt-2 text-xl font-semibold text-slate-950">Speaker timeline</h3>
+        </div>
         {isLive && (
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-sm text-green-400">Live</span>
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-sm text-emerald-600">Live</span>
           </div>
         )}
-        <span className="text-xs text-slate-500">{segments.length} segments</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+          {segments.length} segments
+        </span>
       </div>
 
       <div
         ref={scrollRef}
-        className="space-y-2 max-h-96 overflow-y-auto pr-2"
+        className="max-h-96 space-y-2 overflow-y-auto pr-2"
       >
         {segments.map((seg, idx) => {
           const speaker = speakerColors[seg.speaker] || speakerColors.PATIENT
@@ -64,17 +70,17 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
           return (
             <div
               key={idx}
-              className={`p-3 rounded-lg border-l-4 border-t-0 border-r-0 border-b border-b-slate-100 ${speaker.bg} ${speaker.border} transition-all duration-300`}
+              className={`rounded-[20px] border p-4 transition-all duration-300 ${speaker.bg} ${speaker.border}`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-xs font-semibold ${speaker.text}`}>
+              <div className="mb-1 flex items-center gap-2">
+                <span className={`text-xs font-semibold uppercase tracking-[0.16em] ${speaker.text}`}>
                   {speaker.label}
                 </span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${lang.color}`}>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${lang.color}`}>
                   {lang.label}
                 </span>
                 {seg.start_time !== undefined && (
-                  <span className="text-[10px] text-gray-600 ml-auto">
+                  <span className="ml-auto text-[10px] text-slate-500">
                     {seg.start_time.toFixed(1)}s - {seg.end_time?.toFixed(1) || '?'}s
                   </span>
                 )}

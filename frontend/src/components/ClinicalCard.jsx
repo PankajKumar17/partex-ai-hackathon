@@ -14,16 +14,20 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
 
   return (
     <div className="space-y-4">
-      {/* Symptoms */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">
-          Extracted Symptoms
-          <span className="text-xs text-slate-500 ml-2">({symptoms.length})</span>
-        </h3>
+      <div className="glass-card p-5">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Symptoms</p>
+            <h3 className="mt-2 text-xl font-semibold text-slate-950">Extracted complaints</h3>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+            {symptoms.length} captured
+          </span>
+        </div>
         {symptoms.length === 0 ? (
-          <p className="text-slate-500 text-sm text-center py-4">No symptoms extracted yet</p>
+          <p className="py-6 text-center text-sm text-slate-500">No symptoms extracted yet</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {symptoms.map((s, idx) => {
               const isLowConf = (s.confidence || 0) < 0.6
               return (
@@ -31,22 +35,22 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
                   key={idx}
                   className={`p-3 rounded-xl border transition-all ${
                     isLowConf
-                      ? 'border-red-500/40 bg-red-500/5 animate-pulse'
-                      : 'border-slate-200 bg-slate-50'
+                      ? 'border-rose-300 bg-rose-50'
+                      : 'border-slate-200 bg-slate-50/90'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <span className="font-medium text-slate-900 text-sm">{s.name}</span>
+                      <span className="text-sm font-medium text-slate-900">{s.name}</span>
                       {s.body_part && (
                         <span className="text-xs text-slate-500 ml-2">({s.body_part})</span>
                       )}
                     </div>
                     {s.severity && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        s.severity === 'severe' ? 'bg-red-500/20 text-red-400' :
-                        s.severity === 'moderate' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-green-500/20 text-green-400'
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-[0.18em] ${
+                        s.severity === 'severe' ? 'bg-rose-100 text-rose-700' :
+                        s.severity === 'moderate' ? 'bg-amber-100 text-amber-700' :
+                        'bg-emerald-100 text-emerald-700'
                       }`}>
                         {s.severity}
                       </span>
@@ -57,7 +61,7 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
                   )}
                   <ConfidenceBar value={s.confidence || 0} />
                   {s.language_source && (
-                    <span className="text-[10px] text-gray-600 mt-1 inline-block">
+                    <span className="mt-1 inline-block text-[10px] text-slate-500">
                       Source: {s.language_source}
                     </span>
                   )}
@@ -68,18 +72,20 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
         )}
       </div>
 
-      {/* Vitals */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-lg font-semibold text-slate-900">Vitals</h3>
+      <div className="glass-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Vitals</p>
+            <h3 className="mt-2 text-xl font-semibold text-slate-950">Captured measurements</h3>
+          </div>
           {isFlagged && (
-            <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full">
+            <span className="ml-auto flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700">
               <AlertTriangle className="w-3 h-3" />
               Abnormal
             </span>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {Object.entries(vitalRanges).map(([key, info]) => {
             const value = vitals[key]
             if (!value) return null
@@ -87,7 +93,7 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
               <div
                 key={key}
                 className={`p-3 rounded-xl border ${
-                  isFlagged ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-200 bg-slate-50'
+                  isFlagged ? 'border-amber-300 bg-amber-50/70' : 'border-slate-200 bg-slate-50/90'
                 }`}
               >
                 <p className="text-xs text-slate-500 mb-1">{info.label}</p>
@@ -100,7 +106,7 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
             )
           })}
           {Object.entries(vitalRanges).every(([key]) => !vitals[key]) && (
-            <p className="text-slate-500 text-sm col-span-full text-center py-2">No vitals captured</p>
+            <p className="col-span-full py-2 text-center text-sm text-slate-500">No vitals captured</p>
           )}
         </div>
       </div>

@@ -4,39 +4,41 @@ export default function DifferentialDiagnosis({ diagnoses = [] }) {
   if (diagnoses.length === 0) {
     return (
       <div className="glass-card p-5">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">Differential Diagnosis</h3>
-        <p className="text-slate-500 text-sm text-center py-4">No diagnoses generated yet</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Differential</p>
+        <h3 className="mt-2 text-xl font-semibold text-slate-950">Likely diagnoses</h3>
+        <p className="py-6 text-center text-sm text-slate-500">No diagnoses generated yet</p>
       </div>
     )
   }
 
-  const maxProb = Math.max(...diagnoses.map(d => d.probability || 0), 1)
-
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-      <h3 className="font-semibold text-lg mb-4 text-slate-900">Possible Diagnosis</h3>
+    <div className="glass-card p-5">
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Differential</p>
+        <h3 className="mt-2 text-xl font-semibold text-slate-950">Likely diagnoses</h3>
+      </div>
       <div className="space-y-4">
         {diagnoses.slice(0, 3).map((dx, idx) => {
           const prob = dx.probability || 0
           const barWidth = (prob / 100) * 100
 
           return (
-            <div key={idx} className="space-y-2">
+            <div key={idx} className="space-y-3 rounded-[20px] border border-slate-200 bg-slate-50/90 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-900 font-medium text-sm">
                     {idx + 1}. {dx.name}
                   </span>
                   {dx.red_flags && (
-                    <span className="flex items-center gap-1 text-red-400">
+                    <span className="flex items-center gap-1 text-rose-700">
                       <AlertOctagon className="w-4 h-4" />
-                      <span className="text-[10px] font-bold">RED FLAG</span>
+                      <span className="text-[10px] font-bold tracking-[0.16em]">RED FLAG</span>
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   {dx.ICD10 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary-light font-mono">
+                    <span className="rounded bg-cyan-100 px-1.5 py-0.5 font-mono text-[10px] text-cyan-700">
                       {dx.ICD10}
                     </span>
                   )}
@@ -48,14 +50,14 @@ export default function DifferentialDiagnosis({ diagnoses = [] }) {
               </div>
 
               {/* Probability bar */}
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200">
                 <div
                   className={`h-full rounded-full animate-grow ${
                     dx.red_flags
-                      ? 'bg-red-500'
+                      ? 'bg-rose-500'
                       : idx === 0
-                      ? 'bg-primary'
-                      : 'bg-blue-400'
+                      ? 'bg-cyan-700'
+                      : 'bg-cyan-400'
                   }`}
                   style={{ width: `${barWidth}%` }}
                 />
@@ -74,7 +76,7 @@ export default function DifferentialDiagnosis({ diagnoses = [] }) {
                   {dx.requires_test.map((test, tidx) => (
                     <span
                       key={tidx}
-                      className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-info/10 text-info border border-info/20"
+                      className="flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700"
                     >
                       <FlaskConical className="w-2.5 h-2.5" />
                       {test}
