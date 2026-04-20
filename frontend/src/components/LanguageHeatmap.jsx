@@ -14,7 +14,7 @@ export default function LanguageHeatmap({ heatmap = {} }) {
   if (entries.length === 0) return null
 
   return (
-    <div className="glass-card p-4">
+    <div className="w-full">
       <h4 className="text-sm font-semibold text-slate-600 mb-3">Language Distribution</h4>
       {/* Bar */}
       <div className="flex h-6 rounded-full overflow-hidden mb-3">

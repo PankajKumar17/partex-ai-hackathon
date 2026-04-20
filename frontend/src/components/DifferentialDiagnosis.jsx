@@ -13,8 +13,8 @@ export default function DifferentialDiagnosis({ diagnoses = [] }) {
   const maxProb = Math.max(...diagnoses.map(d => d.probability || 0), 1)
 
   return (
-    <div className="glass-card p-5">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Differential Diagnosis</h3>
+    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <h3 className="font-semibold text-lg mb-4 text-slate-900">Possible Diagnosis</h3>
       <div className="space-y-4">
         {diagnoses.slice(0, 3).map((dx, idx) => {
           const prob = dx.probability || 0
@@ -40,12 +40,15 @@ export default function DifferentialDiagnosis({ diagnoses = [] }) {
                       {dx.ICD10}
                     </span>
                   )}
-                  <span className="text-sm font-bold text-slate-900">{prob}%</span>
+                  <div className="text-right ml-2 min-w-[60px]">
+                    <span className="text-xs text-slate-400 block -mb-1">Confidence</span>
+                    <span className="text-sm font-bold text-slate-700">{prob}%</span>
+                  </div>
                 </div>
               </div>
 
               {/* Probability bar */}
-              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
                 <div
                   className={`h-full rounded-full animate-grow ${
                     dx.red_flags

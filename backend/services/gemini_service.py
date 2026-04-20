@@ -117,7 +117,11 @@ Return ONLY valid JSON (no markdown, no code fences):
 
     import asyncio
     from google.api_core.exceptions import ResourceExhausted
-    
+
+    print(f"\n{'='*50}\n[GEMINI API REQUEST - DIARIZE & EXTRACT]")
+    print(f"Prompt Length: {len(prompt)} characters")
+    print(f"Temperature: 0.2")
+
     max_retries = 3
     response = None
     for attempt in range(max_retries):
@@ -129,6 +133,10 @@ Return ONLY valid JSON (no markdown, no code fences):
                     max_output_tokens=4096,
                 ),
             )
+            print(f"[GEMINI API RESPONSE] Success (Attempt {attempt+1})")
+            print(f"Tokens Used: {response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 'Unknown'}")
+            print(f"Response Preview: {response.text[:150]}...")
+            print(f"{'='*50}\n")
             break
         except ResourceExhausted as e:
             if attempt == max_retries - 1:
@@ -260,6 +268,10 @@ Return ONLY valid JSON (no markdown, no code fences):
     import asyncio
     from google.api_core.exceptions import ResourceExhausted
 
+    print(f"\n{'='*50}\n[GEMINI API REQUEST - CLINICAL ANALYSIS]")
+    print(f"Symptoms: {len(symptoms)}, Vitals: {len(vitals)}")
+    print(f"Prompt Length: {len(prompt)} characters")
+
     max_retries = 3
     response = None
     for attempt in range(max_retries):
@@ -271,6 +283,10 @@ Return ONLY valid JSON (no markdown, no code fences):
                     max_output_tokens=4096,
                 ),
             )
+            print(f"[GEMINI API RESPONSE] Success (Attempt {attempt+1})")
+            print(f"Tokens Used: {response.usage_metadata.total_token_count if hasattr(response, 'usage_metadata') else 'Unknown'}")
+            print(f"Response Preview: {response.text[:150]}...")
+            print(f"{'='*50}\n")
             break
         except ResourceExhausted as e:
             if attempt == max_retries - 1:

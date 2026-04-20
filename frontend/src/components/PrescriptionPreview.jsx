@@ -34,7 +34,7 @@ export default function PrescriptionPreview({ visitId, medications = [], drugInt
   }
 
   return (
-    <div className="glass-card p-5">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-900">Prescription</h3>
         <div className="flex items-center gap-3">

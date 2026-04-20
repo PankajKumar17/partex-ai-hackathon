@@ -224,7 +224,7 @@ export default function AudioRecorder({ patientId, onResult, onPartialTranscript
   }, [])
 
   return (
-    <div className="glass-card p-6 space-y-4">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900">Audio Recorder</h3>
       </div>

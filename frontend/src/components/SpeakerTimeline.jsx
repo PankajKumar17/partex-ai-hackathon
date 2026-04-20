@@ -10,7 +10,7 @@ export default function SpeakerTimeline({ segments = [] }) {
   }
 
   return (
-    <div className="glass-card p-4">
+    <div className="w-full">
       <h4 className="text-sm font-semibold text-slate-600 mb-3">Speaker Timeline</h4>
       <div className="relative h-10 bg-slate-50 rounded-lg overflow-hidden">
         {segments.map((seg, idx) => {

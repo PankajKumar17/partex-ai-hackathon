@@ -15,7 +15,7 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
   return (
     <div className="space-y-4">
       {/* Symptoms */}
-      <div className="glass-card p-5">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="text-lg font-semibold text-slate-900 mb-4">
           Extracted Symptoms
           <span className="text-xs text-slate-500 ml-2">({symptoms.length})</span>
@@ -69,7 +69,7 @@ export default function ClinicalCard({ symptoms = [], vitals = {} }) {
       </div>
 
       {/* Vitals */}
-      <div className="glass-card p-5">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="text-lg font-semibold text-slate-900">Vitals</h3>
           {isFlagged && (

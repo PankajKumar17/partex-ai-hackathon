@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { MessageCircle, X, Send, Mic, Loader2 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { MessageCircle, X, Send, Mic, MicOff, Loader2 } from 'lucide-react'
 import axios from 'axios'
 
 const API = import.meta.env.VITE_API_URL || ''
@@ -9,7 +9,14 @@ export default function RAGChatbot({ patientId }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const inputRef = useRef(null)
+  const messagesEndRef = useRef(null)
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
 
   const suggestedQuestions = [
     'Last prescribed medications?',
@@ -53,18 +60,21 @@ export default function RAGChatbot({ patientId }) {
   }
 
   const handleVoiceQuery = async () => {
+    if (isRecording) return
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       const chunks = []
+      setIsRecording(true)
 
       recorder.ondataavailable = (e) => chunks.push(e.data)
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
+        setIsRecording(false)
         const blob = new Blob(chunks, { type: 'audio/webm' })
 
         setLoading(true)
-        const userMsg = { role: 'user', content: '🎙️ Voice question...' }
+        const userMsg = { role: 'user', content: '🎙️ Processing voice question...' }
         setMessages(prev => [...prev, userMsg])
 
         try {
@@ -79,9 +89,12 @@ export default function RAGChatbot({ patientId }) {
           // Update the voice message with transcribed text
           setMessages(prev => {
             const updated = [...prev]
-            updated[updated.length - 1] = {
-              role: 'user',
-              content: `🎙️ "${res.data.question_text}"`,
+            const voiceIdx = updated.findLastIndex(m => m.content.startsWith('🎙️'))
+            if (voiceIdx >= 0) {
+              updated[voiceIdx] = {
+                role: 'user',
+                content: `🎙️ "${res.data.question_text}"`,
+              }
             }
             return updated
           })
@@ -95,7 +108,7 @@ export default function RAGChatbot({ patientId }) {
         } catch (err) {
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: '❌ Failed to process voice query.',
+            content: '❌ Failed to process voice query. Please try again.',
           }])
         } finally {
           setLoading(false)
@@ -103,9 +116,10 @@ export default function RAGChatbot({ patientId }) {
       }
 
       recorder.start()
-      setTimeout(() => recorder.stop(), 5000) // Record for 5 seconds max
+      setTimeout(() => recorder.stop(), 6000) // Record for 6 seconds max
     } catch {
-      alert('Microphone access needed for voice queries.')
+      setIsRecording(false)
+      alert('Microphone access is needed for voice queries.')
     }
   }
 
@@ -155,7 +169,7 @@ export default function RAGChatbot({ patientId }) {
             <div className={`max-w-[80%] p-3 rounded-xl text-xs ${
               msg.role === 'user'
                 ? 'bg-primary/20 text-primary-light rounded-br-none'
-                : 'bg-slate-50er text-slate-600 rounded-bl-none'
+                : 'bg-slate-100 text-slate-700 rounded-bl-none border border-slate-200'
             }`}>
               <p className="whitespace-pre-wrap">{msg.content}</p>
             </div>
@@ -164,11 +178,13 @@ export default function RAGChatbot({ patientId }) {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-50er p-3 rounded-xl rounded-bl-none">
+            <div className="bg-slate-100 border border-slate-200 p-3 rounded-xl rounded-bl-none">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
             </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -177,18 +193,23 @@ export default function RAGChatbot({ patientId }) {
           <button
             onClick={handleVoiceQuery}
             disabled={loading}
-            className="p-2 rounded-lg bg-slate-50er hover:bg-white text-slate-500 hover:text-slate-900 transition-colors disabled:opacity-50"
+            className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
+              isRecording
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900'
+            }`}
+            title={isRecording ? 'Recording... (auto-stops in 6s)' : 'Ask by voice'}
           >
-            <Mic className="w-4 h-4" />
+            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </button>
           <input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendQuestion(input)}
-            placeholder="Ask about patient history..."
-            className="flex-1 bg-slate-50er text-sm text-slate-900 placeholder-gray-500 px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-primary/50"
-            disabled={loading}
+            placeholder={isRecording ? 'Listening...' : 'Ask about patient history...'}
+            className="flex-1 bg-slate-100 text-sm text-slate-900 placeholder-slate-400 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"
+            disabled={loading || isRecording}
           />
           <button
             onClick={() => sendQuestion(input)}

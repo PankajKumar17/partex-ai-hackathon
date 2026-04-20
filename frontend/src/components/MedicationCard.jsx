@@ -6,17 +6,17 @@ export default function MedicationCard({ medications = [], drugInteractions = []
 
   if (medications.length === 0) {
     return (
-      <div className="glass-card p-5">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">Medications</h3>
-        <p className="text-slate-500 text-sm text-center py-4">No medications captured</p>
-      </div>
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <h3 className="text-lg font-semibold text-slate-900 mb-3">Medications</h3>
+      <p className="text-slate-500 text-sm text-center py-4">No medications captured</p>
+    </div>
     )
   }
 
   return (
-    <div className="glass-card p-5">
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">Medications</h3>
+        <h2 className="text-lg font-semibold text-slate-900">Medications</h2>
         <button
           onClick={() => setShowBrands(!showBrands)}
           className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-900 transition-colors"
@@ -58,64 +58,57 @@ export default function MedicationCard({ medications = [], drugInteractions = []
       )}
 
       {/* Medication List */}
-      <div className="space-y-3">
+      <div className="mt-3 space-y-3">
         {medications.map((med, idx) => (
           <div
             key={idx}
-            className={`p-3 rounded-xl border ${
+            className={`p-3 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center ${
               med.interaction_warning
-                ? 'border-red-500/30 bg-red-500/5'
+                ? 'bg-red-50 border border-red-100'
                 : med.max_daily_dose_exceeded
-                ? 'border-amber-500/30 bg-amber-500/5'
-                : 'border-slate-200 bg-slate-50'
+                ? 'bg-yellow-50 border border-yellow-100'
+                : 'bg-gray-50 border border-slate-100'
             }`}
           >
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <span className="font-semibold text-slate-900 text-sm">
+            <div className="mb-2 md:mb-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-slate-900">
                   {med.generic_name}
                 </span>
-                {showBrands && med.brand_names && med.brand_names.length > 0 && (
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    ({med.brand_names.join(', ')})
-                  </p>
-                )}
+                <div className="flex gap-1">
+                  {!med.safe_for_age && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
+                      Age ⚠️
+                    </span>
+                  )}
+                  {med.max_daily_dose_exceeded && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-600 font-medium">
+                      Dose ⚠️
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex gap-1">
-                {!med.safe_for_age && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">
-                    Age ⚠️
-                  </span>
-                )}
-                {med.max_daily_dose_exceeded && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-medium">
-                    Dose ⚠️
-                  </span>
-                )}
-              </div>
+              {showBrands && med.brand_names && med.brand_names.length > 0 && (
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {med.brand_names.join(', ')}
+                </p>
+              )}
+              {med.interaction_warning && (
+                <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-medium">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  {med.interaction_warning}
+                </p>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="bg-white/60 p-2 rounded-lg text-center">
-                <p className="text-slate-500 mb-0.5">Dose</p>
-                <p className="text-slate-900 font-medium">{med.dose || '-'}</p>
-              </div>
-              <div className="bg-white/60 p-2 rounded-lg text-center">
-                <p className="text-slate-500 mb-0.5">Freq</p>
-                <p className="text-slate-900 font-medium">{med.frequency || '-'}</p>
-              </div>
-              <div className="bg-white/60 p-2 rounded-lg text-center">
-                <p className="text-slate-500 mb-0.5">Duration</p>
-                <p className="text-slate-900 font-medium">{med.duration || '-'}</p>
-              </div>
-            </div>
-
-            {med.interaction_warning && (
-              <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3 shrink-0" />
-                {med.interaction_warning}
+            <div className="text-sm md:text-right">
+              <p className="text-slate-800">
+                {med.dose ? `${med.dose} • ` : ''}{med.frequency || '-'}
               </p>
-            )}
+              {med.duration && (
+                <p className="text-gray-400 mt-0.5">{med.duration}</p>
+              )}
+            </div>
           </div>
         ))}
       </div>

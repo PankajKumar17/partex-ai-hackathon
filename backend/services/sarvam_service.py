@@ -22,22 +22,6 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
     if not SARVAM_API_KEY:
         raise ValueError("SARVAM_API_KEY is not set in environment variables")
 
-    # Gracefully handle the 30 sec limit
-    try:
-        from pydub import AudioSegment
-        import io
-        audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
-        if len(audio_segment) > 29500: # Slightly under 30s to be safe
-            audio_segment = audio_segment[:29500]
-            out_buf = io.BytesIO()
-            # Export in the same basic format, typically wav is safest for Sarvam if we sliced it
-            audio_segment.export(out_buf, format="wav")
-            audio_bytes = out_buf.getvalue()
-            filename = "audio_trimmed.wav"
-    except Exception as e:
-        print(f"Failed to trim audio: {e}")
-        # Proceed with original audio bytes and hope for the best if trimming fails
-
     # Determine content type from filename
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "wav"
     content_type_map = {
@@ -64,6 +48,9 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
         "language_code": "unknown",
         "with_timestamps": "true",
     }
+    
+    print(f"\n{'='*50}\n[SARVAM API REQUEST]")
+    print(f"Model: {data['model']}, Payload Size: {len(audio_bytes)/1024:.2f} KB, Content-Type: {content_type}")
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -75,6 +62,10 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
             )
             response.raise_for_status()
             result = response.json()
+            
+            print(f"[SARVAM API RESPONSE] Status: {response.status_code}")
+            print(f"Transcript: {result.get('transcript', '')[:100]}...")
+            print(f"{'='*50}\n")
 
             transcript = result.get("transcript", "")
             language_code = result.get("language_code", None)

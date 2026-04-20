@@ -13,6 +13,7 @@ import MedicationCard from '../components/MedicationCard'
 import MissingInfoAlert from '../components/MissingInfoAlert'
 import PrescriptionPreview from '../components/PrescriptionPreview'
 import RiskBadge from '../components/RiskBadge'
+import RAGChatbot from '../components/RAGChatbot'
 
 const API = import.meta.env.VITE_API_URL || ''
 
@@ -182,7 +183,7 @@ export default function Consultation() {
       </header>
 
       {/* Patient Brief */}
-      <div className="glass-card p-4 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
         <h3 className="text-xs font-semibold text-slate-500 mb-2">PATIENT BRIEF</h3>
         {loadingBrief ? (
           <div className="skeleton h-12 w-full" />
@@ -192,13 +193,13 @@ export default function Consultation() {
       </div>
 
       {/* Main Content — Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column: Audio + Transcript */}
-        <div className="space-y-4">
+        <div className="lg:col-span-8 space-y-4">
           <AudioRecorder patientId={patientId} onResult={handleAudioResult} />
           
           {consultationData?.transcript && (
-            <div className="glass-card p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
               <h3 className="text-xs font-semibold text-slate-500 mb-2">RAW TRANSCRIPT (SARVAM ASR)</h3>
               <p className="text-sm text-slate-700 leading-relaxed italic border-l-2 border-primary/30 pl-3">
                 "{consultationData.transcript}"
@@ -207,18 +208,29 @@ export default function Consultation() {
           )}
 
           <LiveTranscript segments={consultationData?.speaker_segments || []} />
-          {consultationData?.language_heatmap && (
-            <LanguageHeatmap heatmap={consultationData.language_heatmap} />
-          )}
-          {consultationData?.speaker_segments?.length > 0 && (
-            <SpeakerTimeline segments={consultationData.speaker_segments} />
+          
+          {(consultationData?.language_heatmap || consultationData?.speaker_segments?.length > 0) && (
+            <details className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 group">
+              <summary className="text-sm font-semibold text-slate-700 cursor-pointer list-none flex justify-between items-center">
+                <span>Technical Diagnostics (Language & Timeline)</span>
+                <span className="transition-transform group-open:rotate-180 text-xs">▼</span>
+              </summary>
+              <div className="mt-4 flex flex-col md:flex-row gap-4">
+                {consultationData?.language_heatmap && (
+                  <div className="flex-1"><LanguageHeatmap heatmap={consultationData.language_heatmap} /></div>
+                )}
+                {consultationData?.speaker_segments?.length > 0 && (
+                  <div className="flex-1"><SpeakerTimeline segments={consultationData.speaker_segments} /></div>
+                )}
+              </div>
+            </details>
           )}
         </div>
 
         {/* Right Column: Clinical Intelligence */}
-        <div className="space-y-4">
+        <div className="lg:col-span-4 space-y-4">
           {!consultationData ? (
-            <div className="glass-card p-8 text-center">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
               <p className="text-5xl mb-4">🩺</p>
               <p className="text-slate-500">Record a consultation to see clinical analysis</p>
               <p className="text-xs text-gray-600 mt-2">
@@ -227,6 +239,7 @@ export default function Consultation() {
             </div>
           ) : (
             <>
+              <MissingInfoAlert flags={consultationData.missing_info_flags} />
               <ClinicalCard
                 symptoms={consultationData.symptoms}
                 vitals={consultationData.vitals}
@@ -239,7 +252,6 @@ export default function Consultation() {
                 drugInteractions={consultationData.drug_interactions}
                 dosageWarnings={consultationData.dosage_warnings}
               />
-              <MissingInfoAlert flags={consultationData.missing_info_flags} />
               <PrescriptionPreview
                 visitId={consultationData.visit_id}
                 medications={consultationData.medications}
@@ -249,6 +261,9 @@ export default function Consultation() {
           )}
         </div>
       </div>
+
+      {/* RAG Chatbot — floating */}
+      <RAGChatbot patientId={patientId} />
     </div>
   )
 }

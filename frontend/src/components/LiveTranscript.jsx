@@ -24,7 +24,7 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
 
   if (segments.length === 0) {
     return (
-      <div className="glass-card p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
         <h3 className="text-lg font-semibold text-slate-900 mb-3">Live Transcript</h3>
         <div className="text-center py-8 text-slate-500">
           <p className="text-lg mb-1">🎙️</p>
@@ -41,7 +41,7 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
   }
 
   return (
-    <div className="glass-card p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-900">Live Transcript</h3>
         {isLive && (
@@ -55,7 +55,7 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
 
       <div
         ref={scrollRef}
-        className="space-y-3 max-h-96 overflow-y-auto pr-2"
+        className="space-y-2 max-h-96 overflow-y-auto pr-2"
       >
         {segments.map((seg, idx) => {
           const speaker = speakerColors[seg.speaker] || speakerColors.PATIENT
@@ -64,7 +64,7 @@ export default function LiveTranscript({ segments = [], isLive = false }) {
           return (
             <div
               key={idx}
-              className={`p-3 rounded-xl border ${speaker.bg} ${speaker.border} transition-all duration-300`}
+              className={`p-3 rounded-lg border-l-4 border-t-0 border-r-0 border-b border-b-slate-100 ${speaker.bg} ${speaker.border} transition-all duration-300`}
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className={`text-xs font-semibold ${speaker.text}`}>
