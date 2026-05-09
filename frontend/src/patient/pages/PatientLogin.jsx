@@ -66,16 +66,15 @@ export default function PatientLogin() {
 
   return (
     <div className="pd-login-page">
-      {/* Floating decorative elements */}
       <div style={{
         position: 'absolute', top: '10%', left: '5%',
         width: 60, height: 60, borderRadius: 16,
-        background: 'rgba(13,148,136,0.08)', transform: 'rotate(15deg)'
+        background: 'rgba(0,137,157,0.07)', transform: 'rotate(15deg)'
       }} />
       <div style={{
         position: 'absolute', bottom: '15%', right: '8%',
         width: 80, height: 80, borderRadius: '50%',
-        background: 'rgba(99,102,241,0.06)'
+        background: 'rgba(0,137,157,0.05)'
       }} />
 
       <div className="pd-login-card">
@@ -83,10 +82,10 @@ export default function PatientLogin() {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
             width: 72, height: 72, borderRadius: 20,
-            background: 'linear-gradient(135deg, #0d9488, #6366f1)',
+            background: '#00899D',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 16px', fontSize: 32,
-            boxShadow: '0 8px 24px rgba(13,148,136,0.25)'
+            boxShadow: '0 4px 16px rgba(0,137,157,0.2)'
           }}>
             🏥
           </div>

@@ -104,7 +104,7 @@ def generate_prescription_pdf(
     story = []
 
     # ── Hospital Header ──────────────────────────────────────────
-    story.append(Paragraph("🏥 Voice-Driven Clinic", styles['HospitalName']))
+    story.append(Paragraph(" Voice-Driven Clinic", styles['HospitalName']))
     story.append(Paragraph(
         "AI-Powered Healthcare | Mumbai, Maharashtra, India",
         styles['HospitalAddress']

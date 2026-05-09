@@ -65,6 +65,26 @@ class DocumentCreate(BaseModel):
     report_date: Optional[str] = None
 
 
+def _deduplicate_medications(meds_list: list) -> list:
+    """Keep only unique medications by name (case-insensitive), preserving the most recent."""
+    seen = set()
+    result = []
+    for med in meds_list:
+        if isinstance(med, dict) and "name" in med:
+            name_key = med["name"].strip().lower()
+            if name_key not in seen:
+                seen.add(name_key)
+                result.append(med)
+        elif isinstance(med, str):
+            name_key = med.strip().lower()
+            if name_key not in seen:
+                seen.add(name_key)
+                result.append(med)
+        else:
+            result.append(med)
+    return result
+
+
 # ── Helper: resolve patient by phone (demo bypass) ──────────────
 
 def _get_patient_by_phone(phone: str) -> dict:
@@ -170,7 +190,7 @@ async def get_overview(patient_uuid: str):
     return {
         "patient": patient,
         "risk_level": patient.get("risk_badge", "LOW"),
-        "active_medications": active_meds[:10],
+        "active_medications": _deduplicate_medications(active_meds)[:10],
         "last_visit": last_visit,
         "next_appointment": next_appointment,
         "alerts_count": len(reminders.data or []),
@@ -225,7 +245,7 @@ async def get_health_passport(patient_uuid: str):
         "chronic_conditions": patient.get("chronic_conditions", []),
         "blood_type": patient.get("blood_type", "Unknown"),
         "emergency_contact": patient.get("emergency_contact", {}),
-        "current_medications": active_meds[:10],
+        "current_medications": _deduplicate_medications(active_meds)[:10],
         "qr_token": qr_result.data[0] if qr_result.data else None,
     }
 
@@ -582,6 +602,6 @@ async def get_emergency_data(token: str):
         "blood_type": patient.get("blood_type", "Unknown"),
         "allergies": patient.get("allergies", []),
         "chronic_conditions": patient.get("chronic_conditions", []),
-        "current_medications": current_meds[:10],
+        "current_medications": _deduplicate_medications(current_meds)[:10],
         "emergency_contact": patient.get("emergency_contact", {}),
     }

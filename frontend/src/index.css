@@ -3,9 +3,9 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
   --font-display: "Sora", "Plus Jakarta Sans", "Avenir Next", sans-serif;
-  --color-primary: #0f6c78;
-  --color-primary-light: #18a0ae;
-  --color-primary-dark: #0a4b54;
+  --color-primary: #00899D;
+  --color-primary-light: #00adc4;
+  --color-primary-dark: #006f80;
   --color-surface: #ffffff;
   --color-surface-light: #f6fbfb;
   --color-surface-lighter: #d8e5e7;

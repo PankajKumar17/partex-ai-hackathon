@@ -188,6 +188,8 @@ class PatientApiService {
   PatientApiService._();
 
   static final PatientApiService instance = PatientApiService._();
+  static const String _defaultApiOrigin =
+      'https://partex-ai-hackathon.onrender.com';
 
   final SessionStore _sessionStore = SessionStore();
 
@@ -207,18 +209,18 @@ class PatientApiService {
       return fromDefine;
     }
 
-    return 'http://localhost:8000';
+    return _defaultApiOrigin;
   }
 
   String get _apiOrigin {
     final raw = _configuredApiBase.trim();
     if (raw.isEmpty) {
-      return 'http://localhost:8000';
+      return _defaultApiOrigin;
     }
 
     final uri = Uri.tryParse(raw);
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
-      return raw.replaceFirst(RegExp(r'/+$'), '');
+      return _defaultApiOrigin;
     }
 
     final port = uri.hasPort ? ':${uri.port}' : '';
@@ -425,9 +427,9 @@ class PatientApiService {
     throw ApiException(message, statusCode: response.statusCode);
   }
 
-  Future<Map<String, dynamic>> getHealthPassport() async {
+  Future<Map<String, dynamic>> getHealthDetails() async {
     final id = await _requirePatientId();
-    return _asMap(await _request(method: 'GET', path: '/health-passport/$id'));
+    return _asMap(await _request(method: 'GET', path: '/health-Details/$id'));
   }
 
   Future<Map<String, dynamic>> getVisits() async {

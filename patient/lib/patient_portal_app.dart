@@ -10,13 +10,13 @@ import 'widgets/qr_code_card.dart';
 import 'widgets/vitals_line_chart.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF00488D);
-  static const Color accent = Color(0xFF005FB8);
+  static const Color primary = Color(0xFF00899D);
+  static const Color accent = Color(0xFF00AABF);
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color text = Color(0xFF1F2937);
   static const Color muted = Color(0xFF6B7280);
-  static const Color border = Color(0xFFDCE6F2);
+  static const Color border = Color(0xFFD4E8EB);
   static const Color danger = Color(0xFFE24C4B);
   static const Color warning = Color(0xFFF2994A);
   static const Color success = Color(0xFF2E8B57);
@@ -48,7 +48,7 @@ class PatientPortalApp extends StatelessWidget {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
-          indicatorColor: const Color(0x1FD6E3FF),
+          indicatorColor: const Color(0x2000899D),
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
               fontWeight: states.contains(WidgetState.selected)
@@ -460,7 +460,7 @@ class _PatientShellScreenState extends State<PatientShellScreen> {
     super.initState();
     _pages = [
       HomeScreen(onOpenTab: _switchTab, onLogout: _logout),
-      const HealthPassportScreen(),
+      const HealthDetailsScreen(),
       const RecordsScreen(),
       const MedicationsScreen(),
       const VitalsScreen(),
@@ -523,7 +523,7 @@ class _PatientShellScreenState extends State<PatientShellScreen> {
                 onDestinationSelected: _switchTab,
                 height: 70,
                 backgroundColor: Colors.transparent,
-                indicatorColor: const Color(0x1FD6E3FF),
+                indicatorColor: const Color(0x2000899D),
                 destinations: destinations,
               ),
             ),
@@ -752,8 +752,8 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           PortalHeader(
             icon: Icons.waving_hand_rounded,
-            titleFontSize: 22,
-            subtitleFontSize: 12,
+            titleFontSize: 18,
+            subtitleFontSize: 11,
             title:
                 'Good morning, ${_firstNonEmpty([patient['name'], _patientName, 'Patient'])}',
             subtitle: 'Your clinical profile is up to date.',
@@ -1092,14 +1092,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class HealthPassportScreen extends StatefulWidget {
-  const HealthPassportScreen({super.key});
+class HealthDetailsScreen extends StatefulWidget {
+  const HealthDetailsScreen({super.key});
 
   @override
-  State<HealthPassportScreen> createState() => _HealthPassportScreenState();
+  State<HealthDetailsScreen> createState() => _HealthDetailsScreenState();
 }
 
-class _HealthPassportScreenState extends State<HealthPassportScreen> {
+class _HealthDetailsScreenState extends State<HealthDetailsScreen> {
   final PatientApiService _api = PatientApiService.instance;
 
   bool _loading = true;
@@ -1122,7 +1122,7 @@ class _HealthPassportScreenState extends State<HealthPassportScreen> {
     });
 
     try {
-      final response = await _api.getHealthPassport();
+      final response = await _api.getHealthDetails();
       if (!mounted) {
         return;
       }
