@@ -1,4 +1,5 @@
 import os
+import asyncio
 import httpx
 from dotenv import load_dotenv
 
@@ -6,6 +7,18 @@ load_dotenv()
 
 SARVAM_API_KEY = os.environ.get("SARVAM_API_KEY", "")
 SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
+SARVAM_MAX_RETRIES = 2
+SARVAM_RETRY_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _retry_delay(response: httpx.Response, attempt: int) -> float:
+    retry_after = response.headers.get("retry-after")
+    if retry_after:
+        try:
+            return min(float(retry_after), 10.0)
+        except ValueError:
+            pass
+    return min(2 ** attempt, 8.0)
 
 
 async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> dict:
@@ -55,50 +68,63 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                SARVAM_STT_URL,
-                headers=headers,
-                files=files,
-                data=data,
-            )
+            response = None
+            for attempt in range(SARVAM_MAX_RETRIES + 1):
+                response = await client.post(
+                    SARVAM_STT_URL,
+                    headers=headers,
+                    files=files,
+                    data=data,
+                )
+                if response.status_code not in SARVAM_RETRY_STATUS_CODES:
+                    break
+                if attempt == SARVAM_MAX_RETRIES:
+                    break
+                delay = _retry_delay(response, attempt)
+                print(
+                    f"[SARVAM API RETRY] Status: {response.status_code}; "
+                    f"retrying in {delay:.1f}s"
+                )
+                await asyncio.sleep(delay)
+
             response.raise_for_status()
             result = response.json()
-            
-            print(f"[SARVAM API RESPONSE] Status: {response.status_code}")
-            print(f"Transcript: {result.get('transcript', '')[:100]}...")
-            print(f"{'='*50}\n")
 
-            transcript = result.get("transcript", "")
-            language_code = result.get("language_code", None)
-            language_probability = result.get("language_probability", None)
+        print(f"[SARVAM API RESPONSE] Status: {response.status_code}")
+        print(f"Transcript: {result.get('transcript', '')[:100]}...")
+        print(f"{'='*50}\n")
 
-            # Fallback: if language is unknown/null, default to hindi
-            if not language_code or language_code == "unknown":
-                language_code = "hi-IN"
-                language_probability = 0.0
+        transcript = result.get("transcript", "")
+        language_code = result.get("language_code", None)
+        language_probability = result.get("language_probability", None)
 
-            # Map BCP-47 codes to simple language names
-            lang_map = {
-                "hi-IN": "hindi",
-                "mr-IN": "marathi",
-                "en-IN": "english",
-                "bn-IN": "bengali",
-                "ta-IN": "tamil",
-                "te-IN": "telugu",
-                "kn-IN": "kannada",
-                "ml-IN": "malayalam",
-                "gu-IN": "gujarati",
-                "pa-IN": "punjabi",
-            }
-            language_name = lang_map.get(language_code, "hindi")
+        # Fallback: if language is unknown/null, default to hindi
+        if not language_code or language_code == "unknown":
+            language_code = "hi-IN"
+            language_probability = 0.0
 
-            return {
-                "transcript": transcript,
-                "language_code": language_code,
-                "language_name": language_name,
-                "language_probability": language_probability or 0.0,
-                "timestamps": result.get("timestamps", {}),
-            }
+        # Map BCP-47 codes to simple language names
+        lang_map = {
+            "hi-IN": "hindi",
+            "mr-IN": "marathi",
+            "en-IN": "english",
+            "bn-IN": "bengali",
+            "ta-IN": "tamil",
+            "te-IN": "telugu",
+            "kn-IN": "kannada",
+            "ml-IN": "malayalam",
+            "gu-IN": "gujarati",
+            "pa-IN": "punjabi",
+        }
+        language_name = lang_map.get(language_code, "hindi")
+
+        return {
+            "transcript": transcript,
+            "language_code": language_code,
+            "language_name": language_name,
+            "language_probability": language_probability or 0.0,
+            "timestamps": result.get("timestamps", {}),
+        }
 
     except httpx.HTTPStatusError as e:
         error_detail = ""
@@ -106,6 +132,10 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> d
             error_detail = e.response.text
         except Exception:
             pass
+        if e.response.status_code == 429:
+            raise RuntimeError(
+                "Sarvam API rate limit reached. Please wait a moment and try again."
+            )
         raise RuntimeError(
             f"Sarvam API error ({e.response.status_code}): {error_detail}"
         )

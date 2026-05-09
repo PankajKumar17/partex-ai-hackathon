@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'services/patient_api_service.dart';
 import 'widgets/qr_code_card.dart';
 import 'widgets/vitals_line_chart.dart';
+import 'widgets/audio_recorder_dialog.dart';
 
 class AppColors {
   static const Color primary = Color(0xFF00899D);
@@ -608,32 +609,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final picked = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const [
-        'wav',
-        'mp3',
-        'webm',
-        'ogg',
-        'm4a',
-        'aac',
-        'flac',
-      ],
-      withData: true,
-    );
+    final bytes = await AudioRecorderDialog.show(context);
 
-    if (picked == null || picked.files.isEmpty) {
-      return;
-    }
-
-    final file = picked.files.single;
-    final bytes = file.bytes;
     if (bytes == null || bytes.isEmpty) {
-      setState(() {
-        _consultationError =
-            'Could not read this audio file. Please select another file.';
-      });
-      return;
+      return; // Cancelled or error
     }
 
     setState(() {
@@ -645,7 +624,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final result = await _api.processConsultationAudio(
         patientCode: patientCode,
         audioBytes: bytes,
-        fileName: file.name,
+        fileName: 'consultation.m4a',
       );
 
       if (!mounted) {

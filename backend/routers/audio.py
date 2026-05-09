@@ -7,6 +7,32 @@ from models.schemas import AudioProcessResponse, ProcessTextRequest
 
 router = APIRouter()
 
+SARVAM_REALTIME_MAX_SECONDS = 30
+SARVAM_REALTIME_SAFE_SECONDS = 25
+SARVAM_REALTIME_MAX_BYTES = 25 * 1024 * 1024
+
+
+def _validate_sarvam_realtime_audio(audio_bytes: bytes, quality_info: dict) -> None:
+    if len(audio_bytes) > SARVAM_REALTIME_MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                "Audio file is too large for real-time transcription. "
+                "Please record a shorter clip."
+            ),
+        )
+
+    duration_seconds = float(quality_info.get("duration_seconds") or 0)
+    if duration_seconds > SARVAM_REALTIME_MAX_SECONDS:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Audio is {duration_seconds:.0f}s long. Sarvam real-time "
+                f"transcription supports up to {SARVAM_REALTIME_MAX_SECONDS}s; "
+                f"please keep recordings under {SARVAM_REALTIME_SAFE_SECONDS}s."
+            ),
+        )
+
 
 @router.post("/process", response_model=AudioProcessResponse)
 async def process_audio(
@@ -37,6 +63,7 @@ async def process_audio(
 
     # ── 2. Audio quality scoring ─────────────────────────────────
     quality_info = audio_processor.calculate_audio_quality(audio_bytes)
+    _validate_sarvam_realtime_audio(audio_bytes, quality_info)
     quality_score = quality_info["quality_score"]
 
     # ── 3. Sarvam ASR Transcription ──────────────────────────────
@@ -410,6 +437,11 @@ async def stream_chunk(
     audio_bytes = await audio.read()
     if len(audio_bytes) < 50:
         return {"transcript": "", "session_id": session_id}
+    if len(audio_bytes) > SARVAM_REALTIME_MAX_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="Audio chunk is too large. Please send smaller chunks.",
+        )
 
     try:
         partial_text = await sarvam_service.transcribe_chunk(audio_bytes)
