@@ -185,7 +185,7 @@ export default function EmergencyView() {
           🔒 Patient data accessed via emergency QR code
         </p>
         <p style={{ fontSize: 11, color: '#94a3b8' }}>
-          Powered by Voice-Driven Clinic
+          Powered by VoiceCare
         </p>
       </div>
     </div>

@@ -65,7 +65,7 @@ export default function PrescriptionPreview({ visitId, medications = [], drugInt
 
       <div className="rounded-[24px] border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4">
         <div className="mb-3 border-b border-slate-200 pb-3 text-center">
-          <p className="text-sm font-bold text-slate-900">Voice-Driven Clinic</p>
+          <p className="text-sm font-bold text-slate-900">VoiceCare</p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">AI assisted prescription sheet</p>
         </div>
 

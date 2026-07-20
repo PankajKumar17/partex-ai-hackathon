@@ -8,7 +8,7 @@ load_dotenv()
 from routers import audio, patients, visits, rag, prescription, analytics, patient_memory, patient_portal, auth
 
 app = FastAPI(
-    title="Voice-Driven Clinic API",
+    title="VoiceCare API",
     description="AI-powered clinical documentation system for Indian hospitals",
     version="1.0.0",
 )
@@ -37,13 +37,13 @@ app.include_router(patient_portal.router, prefix="/api/portal", tags=["Patient P
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "voice-driven-clinic"}
+    return {"status": "healthy", "service": "voicecare"}
 
 
 @app.get("/")
 async def root():
     return {
-        "message": "Voice-Driven Clinic API",
+        "message": "VoiceCare API",
         "docs": "/docs",
         "health": "/health",
     }
