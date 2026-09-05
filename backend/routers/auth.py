@@ -28,10 +28,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str
-    role: str  # 'doctor' | 'patient'
-    phone: Optional[str] = None
-    age: Optional[int] = None
-    gender: Optional[str] = "Male"
+    role: str = "doctor"
     invite_code: Optional[str] = None  # Required for doctors
 
 
@@ -82,17 +79,16 @@ def get_current_user(authorization: str = Header(None)) -> dict:
 
 @router.post("/register")
 async def register(req: RegisterRequest):
-    """Register a new doctor or patient account."""
+    """Register a new doctor account."""
     db = get_supabase()
 
     # Validate role
-    if req.role not in ("doctor", "patient"):
-        raise HTTPException(status_code=400, detail="Role must be 'doctor' or 'patient'")
+    if req.role != "doctor":
+        raise HTTPException(status_code=400, detail="Only doctor accounts can be registered")
 
     # Doctor requires invite code
-    if req.role == "doctor":
-        if req.invite_code != DOCTOR_INVITE_CODE:
-            raise HTTPException(status_code=403, detail="Invalid clinic invite code")
+    if req.invite_code != DOCTOR_INVITE_CODE:
+        raise HTTPException(status_code=403, detail="Invalid clinic invite code")
 
     # Check email uniqueness
     existing = db.table("users").select("id").eq("email", req.email.lower()).execute()
@@ -102,41 +98,13 @@ async def register(req: RegisterRequest):
     # Hash password
     pw_hash = hash_password(req.password)
 
-    patient_id = None
-    patient_code = None
-
-    # For patients: create a patient record too
-    if req.role == "patient":
-        # Generate patient ID
-        year = datetime.now().year
-        count_result = (
-            db.table("patients")
-            .select("patient_id")
-            .like("patient_id", f"PT-{year}-%")
-            .execute()
-        )
-        next_num = len(count_result.data or []) + 1
-        patient_code = f"PT-{year}-{next_num:03d}"
-
-        patient_data = {
-            "patient_id": patient_code,
-            "name": req.name,
-            "age": req.age or 30,
-            "gender": req.gender or "Male",
-            "phone": req.phone or "",
-            "risk_badge": "LOW",
-        }
-        patient_result = db.table("patients").insert(patient_data).execute()
-        if patient_result.data:
-            patient_id = patient_result.data[0]["id"]
-
     # Create user
     user_data = {
         "email": req.email.lower(),
         "password_hash": pw_hash,
-        "role": req.role,
+        "role": "doctor",
         "name": req.name,
-        "patient_id": patient_id,
+        "patient_id": None,
     }
     user_result = db.table("users").insert(user_data).execute()
 
@@ -145,12 +113,8 @@ async def register(req: RegisterRequest):
 
     user = user_result.data[0]
 
-    # Link patient to user
-    if patient_id:
-        db.table("patients").update({"user_id": user["id"]}).eq("id", patient_id).execute()
-
     # Generate token
-    token = create_token(user["id"], req.role, patient_id)
+    token = create_token(user["id"], "doctor")
 
     return {
         "token": token,
@@ -159,8 +123,8 @@ async def register(req: RegisterRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
-            "patient_id": patient_id,
-            "patient_code": patient_code,
+            "patient_id": None,
+            "patient_code": None,
         },
     }
 
@@ -176,20 +140,15 @@ async def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user = result.data[0]
+    if user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Patient portal has been removed")
 
     # Verify password
     # if not verify_password(req.password, user["password_hash"]):
     #     raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Get patient info if patient role
-    patient_code = None
-    if user.get("patient_id"):
-        pt = db.table("patients").select("patient_id").eq("id", user["patient_id"]).execute()
-        if pt.data:
-            patient_code = pt.data[0]["patient_id"]
-
     # Generate token
-    token = create_token(user["id"], user["role"], user.get("patient_id"))
+    token = create_token(user["id"], user["role"])
 
     return {
         "token": token,
@@ -198,8 +157,8 @@ async def login(req: LoginRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
-            "patient_id": user.get("patient_id"),
-            "patient_code": patient_code,
+            "patient_id": None,
+            "patient_code": None,
         },
     }
 
@@ -215,17 +174,11 @@ async def get_me(user: dict = Depends(get_current_user)):
 
     u = result.data[0]
 
-    patient_code = None
-    if u.get("patient_id"):
-        pt = db.table("patients").select("patient_id").eq("id", u["patient_id"]).execute()
-        if pt.data:
-            patient_code = pt.data[0]["patient_id"]
-
     return {
         "id": u["id"],
         "email": u["email"],
         "name": u["name"],
         "role": u["role"],
-        "patient_id": u.get("patient_id"),
-        "patient_code": patient_code,
+        "patient_id": None,
+        "patient_code": None,
     }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
-import { Mail, Lock, ArrowRight, Stethoscope, Heart, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, ArrowRight, Stethoscope, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -21,12 +21,8 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      const user = await login(email, password)
-      if (user.role === 'doctor') {
-        navigate('/', { replace: true })
-      } else {
-        navigate('/pd', { replace: true })
-      }
+      await login(email, password)
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.')
     } finally {
@@ -86,7 +82,7 @@ export default function Login() {
             fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
             marginBottom: 6,
           }}>
-            Voice Clinic
+            PrescriptIt AI
           </h1>
           <p style={{ color: '#64748b', fontSize: 14 }}>
             Sign in to your dashboard
@@ -219,28 +215,15 @@ export default function Login() {
           borderRadius: 14, border: '1px solid #ccfbf1',
         }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: '#0d9488', marginBottom: 8 }}>
-            🧪 Quick Start — Register with any email
+            Quick Start - Register with any email
           </p>
-          <div style={{ display: 'flex', gap: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                <Stethoscope size={12} style={{ color: '#0d9488' }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#0f766e' }}>Doctor</span>
-              </div>
-              <p style={{ fontSize: 10, color: '#64748b' }}>
-                Invite code: <strong>CLINIC2024</strong>
-              </p>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                <Heart size={12} style={{ color: '#6366f1' }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#6366f1' }}>Patient</span>
-              </div>
-              <p style={{ fontSize: 10, color: '#64748b' }}>
-                No invite code needed
-              </p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <Stethoscope size={12} style={{ color: '#0d9488' }} />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#0f766e' }}>Doctor</span>
           </div>
+          <p style={{ fontSize: 10, color: '#64748b' }}>
+            Invite code: <strong>CLINIC2024</strong>
+          </p>
         </div>
       </div>
     </div>

@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from routers import audio, patients, visits, rag, prescription, analytics, patient_memory, patient_portal, auth
+from routers import audio, patients, visits, rag, prescription, analytics, patient_memory, auth
 
 app = FastAPI(
-    title="Prescript AI API",
+    title="PrescriptIt AI API",
     description="AI-powered clinical documentation system for Indian hospitals",
     version="1.0.0",
 )
@@ -32,7 +32,6 @@ app.include_router(rag.router, prefix="/api/rag", tags=["RAG"])
 app.include_router(prescription.router, prefix="/api/prescription", tags=["Prescription"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(patient_memory.router, prefix="/api/memory", tags=["Patient Memory"])
-app.include_router(patient_portal.router, prefix="/api/portal", tags=["Patient Portal"])
 
 
 @app.get("/health")
@@ -43,7 +42,7 @@ async def health_check():
 @app.get("/")
 async def root():
     return {
-        "message": "Prescript AI API",
+        "message": "PrescriptIt AI API",
         "docs": "/docs",
         "health": "/health",
     }

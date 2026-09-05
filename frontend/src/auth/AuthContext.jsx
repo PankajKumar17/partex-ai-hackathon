@@ -52,7 +52,6 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('vc_token')
-    localStorage.removeItem('pd_session')
     setToken(null)
     setUser(null)
   }
@@ -65,7 +64,6 @@ export function AuthProvider({ children }) {
     register,
     logout,
     isDoctor: user?.role === 'doctor',
-    isPatient: user?.role === 'patient',
     isAuthenticated: !!user,
   }
 
