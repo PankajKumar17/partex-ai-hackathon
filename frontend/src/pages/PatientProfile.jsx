@@ -11,6 +11,18 @@ import PatientTimeline from '../components/PatientTimeline'
 import RAGChatbot from '../components/RAGChatbot'
 
 const API = import.meta.env.VITE_API_URL || ''
+const profileRequests = new Map()
+
+function getPatientProfile(patientId) {
+  if (!profileRequests.has(patientId)) {
+    const request = axios
+      .get(`${API}/api/patients/${patientId}/profile`)
+      .then((res) => res.data)
+      .finally(() => profileRequests.delete(patientId))
+    profileRequests.set(patientId, request)
+  }
+  return profileRequests.get(patientId)
+}
 
 export default function PatientProfile() {
   const { patientId } = useParams()
@@ -26,13 +38,10 @@ export default function PatientProfile() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [timelineRes, briefRes] = await Promise.all([
-        axios.get(`${API}/api/patients/${patientId}/timeline`),
-        axios.get(`${API}/api/patients/${patientId}/brief`).catch(() => ({ data: { brief: '' } })),
-      ])
-      setPatient(timelineRes.data.patient)
-      setTimeline(timelineRes.data.timeline)
-      setBrief(briefRes.data.brief)
+      const data = await getPatientProfile(patientId)
+      setPatient(data.patient)
+      setTimeline(data.timeline)
+      setBrief(data.brief || '')
     } catch (err) {
       console.error('Failed to fetch patient data:', err)
     } finally {

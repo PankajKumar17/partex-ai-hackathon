@@ -2,9 +2,108 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query
 from db.supabase_client import get_supabase
 from models.schemas import PatientCreate, PatientResponse
-from services import llm_provider
 
 router = APIRouter()
+
+
+def _top_diagnosis(clinical_data: dict | None) -> str:
+    if not clinical_data:
+        return ""
+    diagnoses = clinical_data.get("differential_diagnosis") or clinical_data.get("diagnosis") or []
+    if not diagnoses:
+        return ""
+    first = diagnoses[0]
+    return first.get("name", "") if isinstance(first, dict) else str(first)
+
+
+def _clinical_brief(patient: dict, visits: list[dict]) -> str:
+    """Build a fast patient summary from already-loaded profile data."""
+    lines = []
+    if not visits:
+        lines.append("New patient - no prior history.")
+    else:
+        last = visits[0]
+        date = str(last.get("session_date") or "Unknown")[:10]
+        complaint = last.get("chief_complaint") or "No complaint recorded"
+        diagnosis = _top_diagnosis(last.get("clinical_data"))
+        suffix = f" -> {diagnosis}" if diagnosis else ""
+        lines.append(f"Last visit {date}: {complaint}{suffix}.")
+
+    conditions = patient.get("chronic_conditions") or []
+    allergies = patient.get("allergies") or []
+    parts = []
+    if conditions:
+        names = [c.get("name") if isinstance(c, dict) else str(c) for c in conditions]
+        parts.append(f"Conditions: {', '.join(filter(None, names))}")
+    if allergies:
+        names = [a.get("name") if isinstance(a, dict) else str(a) for a in allergies]
+        parts.append(f"Allergies: {', '.join(filter(None, names))}")
+    lines.append(" | ".join(parts) if parts else "No known chronic conditions or allergies.")
+
+    return "\n".join(lines)
+
+
+def _load_patient_profile(patient_id: str) -> dict:
+    db = get_supabase()
+
+    patient_result = db.table("patients").select("*").eq("patient_id", patient_id).execute()
+    if not patient_result.data:
+        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
+    patient = patient_result.data[0]
+
+    visits_result = (
+        db.table("visits")
+        .select("*")
+        .eq("patient_id", patient["id"])
+        .order("session_date", desc=True)
+        .execute()
+    )
+    visits = visits_result.data or []
+
+    visit_ids = [visit["id"] for visit in visits]
+    clinical_by_visit = {}
+    segments_by_visit = {}
+
+    if visit_ids:
+        clinical_result = (
+            db.table("clinical_data")
+            .select("*")
+            .in_("visit_id", visit_ids)
+            .execute()
+        )
+        clinical_by_visit = {
+            row["visit_id"]: row
+            for row in (clinical_result.data or [])
+        }
+
+        segments_result = (
+            db.table("speaker_segments")
+            .select("*")
+            .in_("visit_id", visit_ids)
+            .order("start_time")
+            .execute()
+        )
+        for row in (segments_result.data or []):
+            segments_by_visit.setdefault(row["visit_id"], []).append(row)
+
+    timeline = []
+    for visit in visits:
+        timeline.append({
+            "visit_id": visit["id"],
+            "session_date": visit.get("session_date"),
+            "chief_complaint": visit.get("chief_complaint", ""),
+            "language_detected": visit.get("language_detected", ""),
+            "audio_quality_score": visit.get("audio_quality_score"),
+            "needs_review": visit.get("needs_review", False),
+            "clinical_data": clinical_by_visit.get(visit["id"]),
+            "speaker_segments": segments_by_visit.get(visit["id"], []),
+        })
+
+    return {
+        "patient": patient,
+        "timeline": timeline,
+        "brief": _clinical_brief(patient, timeline),
+    }
 
 
 def _generate_patient_id(db) -> str:
@@ -112,111 +211,27 @@ async def get_patient_brief(patient_id: str):
     Get an AI-generated 3-line brief for a returning patient.
     Includes last visit summary, chronic conditions, unresolved flags.
     """
-    db = get_supabase()
-
-    # Get patient
-    patient_result = db.table("patients").select("*").eq("patient_id", patient_id).execute()
-    if not patient_result.data:
-        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
-    patient = patient_result.data[0]
-
-    # Get recent visits with clinical data
-    visits_result = (
-        db.table("visits")
-        .select("*")
-        .eq("patient_id", patient["id"])
-        .order("session_date", desc=True)
-        .limit(5)
-        .execute()
-    )
-    visits = visits_result.data or []
-
-    # Enrich visits with clinical data
-    enriched_visits = []
-    for visit in visits:
-        cd_result = (
-            db.table("clinical_data")
-            .select("*")
-            .eq("visit_id", visit["id"])
-            .execute()
-        )
-        visit_info = {
-            "date": visit.get("session_date", ""),
-            "chief_complaint": visit.get("chief_complaint", ""),
-            "language": visit.get("language_detected", ""),
-        }
-        if cd_result.data:
-            cd = cd_result.data[0]
-            visit_info["diagnoses"] = cd.get("differential_diagnosis", [])
-            visit_info["medications"] = cd.get("medications", [])
-            visit_info["missing_flags"] = cd.get("missing_info_flags", [])
-            visit_info["follow_up_date"] = cd.get("follow_up_date")
-            visit_info["vitals"] = cd.get("vitals", {})
-        enriched_visits.append(visit_info)
-
-    # Generate AI brief (will auto-route based on LLM_PROVIDER)
-    brief = await llm_provider.generate_patient_brief(patient, enriched_visits)
+    profile = _load_patient_profile(patient_id)
+    patient = profile["patient"]
+    timeline = profile["timeline"]
 
     return {
         "patient_id": patient_id,
         "patient_name": patient["name"],
         "risk_badge": patient.get("risk_badge", "LOW"),
-        "total_visits": len(visits),
-        "brief": brief,
+        "total_visits": len(timeline),
+        "brief": profile["brief"],
     }
+
+
+@router.get("/{patient_id}/profile")
+async def get_patient_profile(patient_id: str):
+    """Get patient profile, visit timeline, and clinical brief in one batched call."""
+    return _load_patient_profile(patient_id)
 
 
 @router.get("/{patient_id}/timeline")
 async def get_patient_timeline(patient_id: str):
     """Get all visits for a patient, sorted by date, for timeline view."""
-    db = get_supabase()
-
-    # Get patient
-    patient_result = db.table("patients").select("*").eq("patient_id", patient_id).execute()
-    if not patient_result.data:
-        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
-    patient = patient_result.data[0]
-
-    # Get all visits
-    visits_result = (
-        db.table("visits")
-        .select("*")
-        .eq("patient_id", patient["id"])
-        .order("session_date", desc=True)
-        .execute()
-    )
-    visits = visits_result.data or []
-
-    # Enrich each visit with clinical data
-    timeline = []
-    for visit in visits:
-        cd_result = (
-            db.table("clinical_data")
-            .select("*")
-            .eq("visit_id", visit["id"])
-            .execute()
-        )
-        segments_result = (
-            db.table("speaker_segments")
-            .select("*")
-            .eq("visit_id", visit["id"])
-            .order("start_time")
-            .execute()
-        )
-
-        entry = {
-            "visit_id": visit["id"],
-            "session_date": visit.get("session_date"),
-            "chief_complaint": visit.get("chief_complaint", ""),
-            "language_detected": visit.get("language_detected", ""),
-            "audio_quality_score": visit.get("audio_quality_score"),
-            "needs_review": visit.get("needs_review", False),
-            "clinical_data": cd_result.data[0] if cd_result.data else None,
-            "speaker_segments": segments_result.data or [],
-        }
-        timeline.append(entry)
-
-    return {
-        "patient": patient,
-        "timeline": timeline,
-    }
+    profile = _load_patient_profile(patient_id)
+    return {"patient": profile["patient"], "timeline": profile["timeline"]}
