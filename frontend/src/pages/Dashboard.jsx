@@ -74,7 +74,7 @@ export default function Dashboard() {
             <Stethoscope className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 leading-tight">Voice-Driven Clinic</h1>
+            <h1 className="text-xl font-bold text-slate-900 leading-tight">Prescript AI</h1>
             <p className="text-xs text-slate-400 tracking-wide">AI-Powered Clinical Documentation</p>
           </div>
         </div>

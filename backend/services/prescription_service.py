@@ -104,7 +104,7 @@ def generate_prescription_pdf(
     story = []
 
     # ── Hospital Header ──────────────────────────────────────────
-    story.append(Paragraph(" Voice-Driven Clinic", styles['HospitalName']))
+    story.append(Paragraph(" Prescript AI", styles['HospitalName']))
     story.append(Paragraph(
         "AI-Powered Healthcare | Mumbai, Maharashtra, India",
         styles['HospitalAddress']
@@ -268,7 +268,7 @@ def generate_prescription_pdf(
         styles['FooterText']
     ))
     story.append(Paragraph(
-        f"Generated on {datetime.now().strftime('%d %b %Y at %I:%M %p')} | Voice-Driven Clinic v1.0",
+        f"Generated on {datetime.now().strftime('%d %b %Y at %I:%M %p')} | Prescript AI v1.0",
         styles['FooterText']
     ))
 

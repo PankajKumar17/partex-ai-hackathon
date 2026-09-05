@@ -1,4 +1,4 @@
--- Voice-Driven Clinic — Supabase Schema
+-- Prescript AI — Supabase Schema
 -- Run this in Supabase SQL Editor to create all tables
 
 -- Enable UUID extension

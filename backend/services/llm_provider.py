@@ -16,7 +16,7 @@ async def clinical_analysis(*args, **kwargs):
 
 async def generate_patient_brief(*args, **kwargs):
     if _get_provider() == "gemini":
-        return gemini_service.generate_patient_brief(*args, **kwargs)
+        return await gemini_service.generate_patient_brief(*args, **kwargs)
     return await groq_service.generate_patient_brief(*args, **kwargs)
 
 async def rag_query(*args, **kwargs):
