@@ -1,4 +1,4 @@
--- Prescript AI — Supabase Schema
+-- PrescriptIt AI — Supabase Schema
 -- Run this in Supabase SQL Editor to create all tables
 
 -- Enable UUID extension

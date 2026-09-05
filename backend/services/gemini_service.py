@@ -318,3 +318,4 @@ def detect_epidemic_patterns(symptom_data: list) -> list:
                            "evidence": f"{count} cases in 7 days.", "affected_count": count,
                            "recommendation": "Monitor for outbreak."})
     return alerts
+         

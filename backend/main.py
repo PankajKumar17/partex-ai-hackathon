@@ -15,6 +15,7 @@ app = FastAPI(
 
 # CORS middleware
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_URL, "http://localhost:5173", "http://localhost:5174"],
@@ -36,7 +37,7 @@ app.include_router(patient_memory.router, prefix="/api/memory", tags=["Patient M
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "voice-driven-clinic"}
+    return {"status": "healthy", "service": "prescriptIt-ai"}
 
 
 @app.get("/")
@@ -47,10 +48,6 @@ async def root():
         "health": "/health",
     }
 
-
-@app.head("/")
-async def root_head():
-    return {}
 
 
 if __name__ == "__main__":

@@ -3,10 +3,9 @@ Auth Router — Email/password login & registration with JWT tokens.
 """
 
 import os
-import uuid
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Header
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 
 import bcrypt

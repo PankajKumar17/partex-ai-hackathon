@@ -49,6 +49,7 @@ async def rag_query(query: RAGQuery):
             "chief_complaint": visit.get("chief_complaint", ""),
             "language": visit.get("language_detected", ""),
         }
+        print(f"Clinical data for visit {visit['id']}: {cd_result.data}")
         if cd_result.data:
             cd = cd_result.data[0]
             entry["symptoms"] = cd.get("symptoms", [])
